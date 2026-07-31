@@ -43,7 +43,21 @@ def run_standard_pipeline(payload: Any) -> Dict[str, Any]:
     """Run the full pre-sowing advisory pipeline.
 
     Returns a unified JSON-serialisable response matching the API spec.
+
+    Serving path: when the central/edge two-mode artifacts are present the
+    request is routed through them (state's edge node if one is qualified,
+    central otherwise). The response shape is identical either way, and any
+    failure in the routed path falls through to the original per-model code
+    below -- so the worst case is exactly pre-refactor behaviour.
     """
+    try:
+        from ml.advisor_edge.pipeline import run_two_mode_pipeline, two_mode_available
+
+        if two_mode_available():
+            return run_two_mode_pipeline(payload)
+    except Exception as exc:  # never let routing break serving
+        logger.warning("Two-mode pipeline unavailable, using legacy path: %s", exc)
+
     from ml.pre_sowing_advisor.crop_recommendation.predict import predict_crop
     from ml.pre_sowing_advisor.yield_prediction.predict import predict_yield
     from ml.pre_sowing_advisor.irrigation_sunlight.predict import predict_irrigation_advisory
