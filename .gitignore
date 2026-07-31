@@ -44,3 +44,9 @@ trained_artifacts_fast/
 
 # Local user files
 *.crdownload
+
+# Retrieval caches: AGRIS Open Data Set subsets and per-query enrichment
+# results. Regenerated on demand; the ODS subsets alone are ~150 MB.
+graph_rag/cache/
+.cache/
+TerraMind_Datasets/

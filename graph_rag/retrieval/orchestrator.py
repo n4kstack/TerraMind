@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 import os
 from typing import Dict, List, Optional
@@ -43,11 +44,23 @@ class ExternalRetrievalOrchestrator:
         all_logs: List[SourceCallLog] = []
         capability_by_source: Dict[str, Dict] = {}
 
-        for adapter in self.adapters:
+        # Adapters are independent network calls, so run them concurrently.
+        # Sequentially this loop cost ~60s; the slowest single source now sets
+        # the floor instead of the sum of all ten.
+        def _run(adapter):
+            try:
+                return adapter, adapter.search(profile)
+            except Exception:
+                # A failing source must never take down the pipeline.
+                return adapter, ([], [])
+
+        with ThreadPoolExecutor(max_workers=len(self.adapters) or 1) as pool:
+            results = list(pool.map(_run, self.adapters))
+
+        for adapter, (raw_records, logs) in results:
             capability = adapter.capability()
             capability_by_source[adapter.source_name] = capability.__dict__
 
-            raw_records, logs = adapter.search(profile)
             normalized_docs = normalize_records(
                 adapter.source_name,
                 raw_records,
@@ -63,6 +76,7 @@ class ExternalRetrievalOrchestrator:
             source_counts[adapter.source_name] += len(normalized_docs)
             all_docs.extend(normalized_docs)
 
+        all_docs = self._dedupe_across_sources(all_docs)
         ranked_docs = score_documents(profile, all_docs)
         final_docs = self._apply_source_group_policy(ranked_docs)
 
@@ -88,19 +102,48 @@ class ExternalRetrievalOrchestrator:
             capability_matrix=list(capability_by_source.values()),
         )
 
+    @staticmethod
+    def _dedupe_across_sources(docs):
+        """
+        Drop the same paper arriving from more than one source.
+
+        AGRICOLA and PubAg are both served by the NAL Primo index, and OpenAlex
+        and Europe PMC overlap heavily by DOI, so without this the same study
+        can occupy several context slots. The richest copy wins, so a record
+        with a full abstract is preferred over a bare catalogue entry.
+        """
+        best = {}
+        order = []
+        for doc in docs:
+            doi = (getattr(doc, "doi", "") or "").strip().lower()
+            key = f"doi:{doi}" if doi else f"title:{(doc.title or '').strip().lower()}"
+            if not key or key in ("doi:", "title:"):
+                continue
+            incumbent = best.get(key)
+            if incumbent is None:
+                best[key] = doc
+                order.append(key)
+            elif len(doc.abstract or "") > len(incumbent.abstract or ""):
+                best[key] = doc
+        return [best[k] for k in order]
+
     def _apply_source_group_policy(self, ranked_docs):
         primary_docs = [d for d in ranked_docs if not getattr(d, "enrichment_only", False)]
         enrichment_docs = [d for d in ranked_docs if getattr(d, "enrichment_only", False)]
 
-        agris_primary = [d for d in primary_docs if (d.source or "").lower() == "agris"]
-        other_primary = [d for d in primary_docs if (d.source or "").lower() != "agris"]
+        # Evidence quality decides the primary tier, not source identity. The
+        # previous rule pinned AGRIS to the top and capped every other source at
+        # two documents; because the AGRIS adapter reads a catalogue of dataset
+        # descriptors, that reliably buried real abstracts under metadata stubs.
+        quality_rank = {"high": 0, "medium": 1, "metadata_only": 2}
+        primary_docs.sort(
+            key=lambda d: (
+                quality_rank.get(getattr(d, "evidence_quality", "metadata_only"), 2),
+                -float(getattr(d, "retrieval_confidence", 0.0) or 0.0),
+            )
+        )
 
-        # AGRIS is the primary evidence tier by design.
-        if agris_primary:
-            selected_primary = agris_primary + other_primary[:2]
-            enrichment_cap = min(4, max(2, len(selected_primary) // 2))
-            selected = selected_primary + enrichment_docs[:enrichment_cap]
-        elif primary_docs:
+        if primary_docs:
             enrichment_cap = min(4, max(2, len(primary_docs) // 2))
             selected = primary_docs + enrichment_docs[:enrichment_cap]
         else:

@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Dict, List
 
 from .base import AdapterCapability, SourceAdapter
+from .. import agris_ods
 from ..types import QueryProfile, SourceCallLog
 
 
@@ -16,16 +17,20 @@ class AgrisAdapter(SourceAdapter):
     def capability(self) -> AdapterCapability:
         return AdapterCapability(
             source="AGRIS",
-            access_type="local XML/ODS file or FAO search page",
-            expected_result_type="metadata/abstract",
+            access_type="AGRIS Open Data Set XML subsets (CC-BY-4.0)",
+            expected_result_type="bibliographic metadata + abstracts",
             full_text_likely=False,
-            metadata_only_likely=True,
-            reliability="medium",
+            metadata_only_likely=False,
+            reliability="high",
             source_group="primary_research",
             enrichment_only=False,
             notes=(
-                "Prefers local AGRIS XML/ODS under 'graph rag source'. "
-                "Falls back to /search/en route. TODO: validate long-term selector stability and anti-bot behavior."
+                "Searches real AGRIS bibliographic records downloaded from "
+                "agris.fao.org/ods/ (see retrieval/agris_ods.py). Subsets are "
+                "configurable via AGRIS_ODS_SUBSETS and default to Indian "
+                "agricultural research (ICAR and allied societies). The DCAT "
+                "catalogue under 'graph rag source' describes datasets rather "
+                "than research, and is only a fallback."
             ),
         )
 
@@ -73,11 +78,41 @@ class AgrisAdapter(SourceAdapter):
         ]
 
     def search(self, profile: QueryProfile) -> (List[Dict], List[SourceCallLog]):
+        # Preferred path: the real AGRIS bibliographic records from the Open
+        # Data Set subsets. The legacy paths below search the DCAT catalogue
+        # (dataset descriptors, not research) and are kept only as a fallback
+        # for when the ODS files cannot be downloaded.
+        queries = [
+            q for q in (
+                profile.threat_query,
+                profile.crop_query,
+                profile.broad_query,
+                profile.fallback_query,
+            ) if (q or "").strip()
+        ]
+        ods_call = SourceCallLog(
+            source=self.source_name,
+            query=queries[0] if queries else "",
+            url="https://agris.fao.org/ods/",
+            method="ODS",
+            payload={"mode": "agris_open_data_set_records"},
+        )
+        try:
+            ods_records = agris_ods.search(queries, limit=8)
+            ods_call.status_code = 200
+            ods_call.response_type = "xml"
+            ods_call.parsed_item_count = len(ods_records)
+            ods_call.preview_items = ods_records[:3]
+            if ods_records:
+                return ods_records, [ods_call]
+        except Exception as exc:
+            ods_call.other_error = str(exc)
+
         local_records, local_logs = self._search_local_file(profile)
         if local_records:
-            return local_records, local_logs
+            return local_records, [ods_call] + local_logs
         web_records, web_logs = super().search(profile)
-        return web_records, local_logs + web_logs
+        return web_records, [ods_call] + local_logs + web_logs
 
     def _search_local_file(self, profile: QueryProfile) -> (List[Dict], List[SourceCallLog]):
         source_file = self._find_local_source_file()
