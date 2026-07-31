@@ -38,11 +38,28 @@ def _load_cache(cache_key: str, source: str) -> List[str] | None:
     if path.exists():
         try:
             data = json.loads(path.read_text(encoding="utf-8"))
+            # An empty cached result is treated as a miss, not a hit. The old
+            # endpoints returned nothing for every query, so empty files were
+            # written for each crop/disease pair; honouring them would pin the
+            # fetchers at zero results forever even after they were repaired.
+            if not data:
+                logger.info("Cache STALE-EMPTY for %s [%s]; refetching", cache_key, source)
+                return None
             logger.info("Cache HIT for %s [%s]", cache_key, source)
             return data
         except Exception as exc:
             logger.warning("Cache read error for %s [%s]: %s", cache_key, source, exc)
     return None
+
+
+def _format_record(record: dict) -> str:
+    """Flatten a retrieval record dict into the 'title. abstract' form callers expect."""
+    title = str(record.get("title") or "").strip()
+    abstract = str(record.get("abstract") or record.get("snippet") or "").strip()
+    if not title and not abstract:
+        return ""
+    text = f"{title}. {abstract}".strip() if title else abstract
+    return text if text != "." else ""
 
 
 def _save_cache(cache_key: str, source: str, results: List[str]) -> None:
@@ -149,9 +166,29 @@ async def fetch_agris(crop: str, disease: str) -> List[str]:
         return cached
 
     query = f"{crop} {disease}".replace("_", " ")
+    results: List[str] = []
+
+    # Preferred path: the local AGRIS Open Data Set index of real bibliographic
+    # records. The agris.fao.org search endpoint below is Cloudflare-protected
+    # (HTTP 403) and returned nothing for every crop/disease pair, which is why
+    # diagnosis enrichment was a silent no-op.
+    try:
+        from graph_rag.retrieval import agris_ods
+
+        ods_hits = await asyncio.to_thread(
+            agris_ods.search, [query, crop, f"{disease} management".replace("_", " ")], 8
+        )
+        results = [_format_record(rec) for rec in ods_hits]
+        results = [r for r in results if r]
+        if results:
+            logger.info("AGRIS ODS returned %d documents for '%s'", len(results), query)
+            _save_cache(cache_key, "agris", results)
+            return results
+    except Exception as exc:
+        logger.warning("AGRIS ODS lookup failed for '%s': %s", query, exc)
+
     url = "https://agris.fao.org/agris-search/search.do"
     params = {"query": query, "format": "json"}
-    results: List[str] = []
 
     for attempt in range(_MAX_RETRIES):
         try:
@@ -219,9 +256,31 @@ async def fetch_agricola(crop: str, disease: str) -> List[str]:
         return cached
 
     query = f"{crop} {disease}".replace("_", " ")
+    results: List[str] = []
+
+    # Preferred path: the NAL Primo REST API. The catalog.nal.usda.gov endpoint
+    # below no longer resolves at all, so this fetcher returned zero records for
+    # every crop/disease pair.
+    try:
+        from graph_rag.retrieval.adapters.nal_primo import primo_search_queries
+
+        records, _logs = await asyncio.to_thread(
+            primo_search_queries,
+            "AGRICOLA",
+            [query, f"{crop} {disease} control".replace("_", " ")],
+            "agricola",
+            8,
+        )
+        results = [r for r in (_format_record(rec) for rec in records) if r]
+        if results:
+            logger.info("AGRICOLA (Primo) returned %d records for '%s'", len(results), query)
+            _save_cache(cache_key, "agricola", results)
+            return results
+    except Exception as exc:
+        logger.warning("AGRICOLA Primo lookup failed for '%s': %s", query, exc)
+
     url = "https://catalog.nal.usda.gov/api/v1/"
     params = {"query": query, "format": "json"}
-    results: List[str] = []
 
     for attempt in range(_MAX_RETRIES):
         try:

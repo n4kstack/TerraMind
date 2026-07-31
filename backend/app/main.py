@@ -80,9 +80,20 @@ if FRONTEND_DIST.exists():
     if assets_dir.exists():
         app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="frontend-assets")
 
+    # index.html must never be cached. Vite fingerprints every file under
+    # /assets, so those are safe to cache forever, but the entry HTML is what
+    # points at them. Served without a Cache-Control header the browser applies
+    # heuristic caching and can keep serving an old shell that references asset
+    # filenames from a previous build - so a deploy appears not to have landed
+    # until the user hard-refreshes.
+    _INDEX_HEADERS = {"Cache-Control": "no-cache, must-revalidate"}
+
+    def _index_response() -> FileResponse:
+        return FileResponse(str(FRONTEND_DIST / "index.html"), headers=_INDEX_HEADERS)
+
     @app.get("/", include_in_schema=False)
     async def spa_index():
-        return FileResponse(str(FRONTEND_DIST / "index.html"))
+        return _index_response()
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def spa_fallback(full_path: str):
@@ -106,7 +117,8 @@ if FRONTEND_DIST.exists():
         candidate = FRONTEND_DIST / full_path
         if candidate.exists() and candidate.is_file():
             return FileResponse(str(candidate))
-        return FileResponse(str(FRONTEND_DIST / "index.html"))
+        # SPA deep links fall back to the shell, which must revalidate too.
+        return _index_response()
 
 
 # ── Health & utility endpoints ──────────────────────────────────────────

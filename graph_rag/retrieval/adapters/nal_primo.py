@@ -75,7 +75,7 @@ def primo_search(
     limit: int = 8,
     timeout: float = 20.0,
 ) -> Tuple[List[Dict], List[SourceCallLog]]:
-    """Query NAL Primo and return normalizer-ready records plus call logs."""
+    """Query NAL Primo from a QueryProfile and return normalizer-ready records."""
     queries = [
         q
         for q in (
@@ -86,10 +86,28 @@ def primo_search(
         )
         if (q or "").strip()
     ]
+    return primo_search_queries(source_name, queries, scope, limit=limit, timeout=timeout)
+
+
+def primo_search_queries(
+    source_name: str,
+    queries: List[str],
+    scope: str,
+    limit: int = 8,
+    timeout: float = 20.0,
+) -> Tuple[List[Dict], List[SourceCallLog]]:
+    """
+    Query NAL Primo from a plain list of search strings.
+
+    Kept separate from ``primo_search`` so callers outside the adapter pipeline
+    (the diagnosis enrichment path) can reuse this client without constructing
+    a QueryProfile.
+    """
     # Preserve order, drop duplicates, and keep the call budget small.
     seen_q, ordered = set(), []
     for q in queries:
-        if q not in seen_q:
+        q = (q or "").strip()
+        if q and q not in seen_q:
             seen_q.add(q)
             ordered.append(q)
     ordered = ordered[:2]
