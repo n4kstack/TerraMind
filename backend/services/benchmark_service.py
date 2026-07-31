@@ -25,7 +25,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from backend.core.config import (
-    CROP_REC_FEATURES, CENTRAL_ARTIFACTS, EDGE_ARTIFACTS, LOCAL_ARTIFACTS,
+    CROP_REC_FEATURES, CENTRAL_ARTIFACTS, EDGE_ARTIFACTS,
     TEST_SIZE, RANDOM_SEED,
 )
 from backend.core.logging_config import log
@@ -110,32 +110,6 @@ def benchmark_all() -> dict:
     except Exception as exc:
         log.error("Edge benchmark failed: %s", exc)
         results["edge"] = {"error": str(exc)}
-
-    # ── System C: Local-Only ──────────────────────────────────────────
-    try:
-        summary_path = LOCAL_ARTIFACTS / "crop_recommender" / "local_benchmark_summary.json"
-        if summary_path.exists():
-            with open(summary_path) as f:
-                local_summary = json.load(f)
-            avg_acc = np.mean([v["accuracy"] for v in local_summary.values()])
-            avg_f1  = np.mean([v["macro_f1"] for v in local_summary.values()])
-            results["local_only"] = {
-                "avg_accuracy": round(float(avg_acc), 4),
-                "avg_macro_f1": round(float(avg_f1), 4),
-                "n_states": len(local_summary),
-                "per_state": local_summary,
-                "artifact_size_kb": _dir_size_kb(LOCAL_ARTIFACTS / "crop_recommender"),
-            }
-            if "central" in results and "accuracy" in results["central"]:
-                gap = results["central"]["accuracy"] - avg_acc
-                results["local_only"]["accuracy_gap_vs_central"] = round(gap * 100, 2)
-            log.info("Local-only: avg_acc=%.4f avg_F1=%.4f (%d states)",
-                     avg_acc, avg_f1, len(local_summary))
-        else:
-            results["local_only"] = {"error": "Local models not trained yet"}
-    except Exception as exc:
-        log.error("Local benchmark failed: %s", exc)
-        results["local_only"] = {"error": str(exc)}
 
     # ── Summary table ─────────────────────────────────────────────────
     summary = {
