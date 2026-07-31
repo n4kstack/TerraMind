@@ -23,4 +23,4 @@ DIAGNOSIS_ALLOWED_CONTENT_TYPES = [
 ]
 
 # Kept for backward compatibility in report generation code.
-REPORT_OLLAMA_NUM_PREDICT = int(os.getenv("TERRAMIND_REPORT_NUM_PREDICT", "1500"))
+REPORT_OLLAMA_NUM_PREDICT = int(os.getenv("TERRAMIND_REPORT_NUM_PREDICT", "5000"))

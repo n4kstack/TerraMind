@@ -45,7 +45,7 @@ class GraphRAGPipeline:
         self.ollama_base_url = ollama_base_url or os.getenv("OLLAMA_BASE_URL", "http://127.0.0.1:11434")
         self.ollama_model = ollama_model or os.getenv(
             "GRAPH_RAG_MODEL",
-            os.getenv("OPENROUTER_MODEL_NAME", os.getenv("GEMINI_MODEL_NAME", "z-ai/glm-4.5-air:free")),
+            os.getenv("OPENROUTER_MODEL_NAME", os.getenv("GEMINI_MODEL_NAME", "nvidia/nemotron-3-ultra-550b-a55b:free")),
         )
         self.ollama_fallback_model = os.getenv(
             "GRAPH_RAG_FALLBACK_MODEL",
@@ -60,8 +60,8 @@ class GraphRAGPipeline:
         self.ollama_max_wait_seconds = int(os.getenv("GRAPH_RAG_OLLAMA_MAX_WAIT", "0"))
         self.ollama_connect_timeout = float(os.getenv("GRAPH_RAG_OLLAMA_CONNECT_TIMEOUT", "10"))
         self.ollama_retries = max(0, int(os.getenv("GRAPH_RAG_OLLAMA_RETRIES", "1")))
-        self.graph_rag_llm_max_tokens = int(os.getenv("GRAPH_RAG_LLM_MAX_TOKENS", "1200"))
-        self.graph_rag_llm_retry_max_tokens = int(os.getenv("GRAPH_RAG_LLM_RETRY_MAX_TOKENS", "1600"))
+        self.graph_rag_llm_max_tokens = int(os.getenv("GRAPH_RAG_LLM_MAX_TOKENS", "4000"))
+        self.graph_rag_llm_retry_max_tokens = int(os.getenv("GRAPH_RAG_LLM_RETRY_MAX_TOKENS", "5000"))
         self.enable_external_sources = os.getenv("GRAPH_RAG_ENABLE_EXTERNAL_SOURCES", "true").lower() in {
             "1", "true", "yes", "on"
         }
@@ -361,8 +361,11 @@ class GraphRAGPipeline:
         fallbacks.extend(self.ollama_model_candidates)
 
         # Safe default candidates when running OpenRouter free-tier models.
-        if current == "z-ai/glm-4.5-air:free":
-            fallbacks.extend(["z-ai/glm-4.5-air:free"])
+        if current == "nvidia/nemotron-3-ultra-550b-a55b:free":
+            fallbacks.extend([
+                "nvidia/nemotron-3-super-120b-a12b:free",
+                "google/gemma-4-31b-it:free",
+            ])
 
         # Preserve order and remove duplicates/primary model.
         unique_candidates = []
@@ -393,66 +396,112 @@ class GraphRAGPipeline:
         kg_context_text: str,
         external_context_text: str,
     ) -> str:
-        safety_lines = [
-            "You are an advanced agricultural intelligence assistant.",
-            "AGRIS (FAO) is your PRIMARY scientific source.",
-            "Your output must be specific, non-generic, field-actionable, and decision-ready.",
-            "Never stop at low confidence. Provide best possible actionable guidance using AGRIS + labeled expert inference.",
-            "If a point is not directly supported by AGRIS, label it as Expert inference.",
-            "Always connect weather -> biology -> crop impact.",
-            "Always include specific pest/disease names (common + scientific when possible).",
-            "Use active ingredient names for chemical control where applicable.",
-            "Prefer recent research (last 10-15 years) but include older high-quality epidemiology when needed.",
+        role_lines = [
+            "You are an agricultural advisory assistant for working farmers and agronomists.",
+            "You answer the exact question asked, using only the facts the user actually gave you.",
+            "You are concise. A focused, correct, short answer beats an exhaustive one.",
         ]
 
         parsed_block = json.dumps(asdict(parsed), ensure_ascii=True, indent=2)
 
         return (
-            "\n".join(safety_lines)
+            "\n".join(role_lines)
             + "\n\n"
             + f"USER QUERY:\n{user_query}\n\n"
-            + f"PARSED INTENT:\n{parsed_block}\n\n"
-            + "GRAPH CONTEXT:\n"
+            + "PARSED INTENT (low-confidence machine guess - it is often wrong.\n"
+            + "Trust the USER QUERY text over this block. If a field here is not\n"
+            + "actually present in the user's words, ignore it entirely):\n"
+            + parsed_block
+            + "\n\n"
+            + "GRAPH CONTEXT (local agronomic knowledge graph):\n"
             + (kg_context_text or "(no graph context found)")
             + "\n\n"
-            + "EXTERNAL RESEARCH CONTEXT (AGRIS primary + enrichment datasets/sources):\n"
+            + "EXTERNAL RESEARCH CONTEXT (AGRIS/AGRICOLA etc.):\n"
             + (external_context_text or "(no external context used)")
             + "\n\n"
-            + "RETRIEVAL STRATEGY (MANDATORY):\n"
-            + "- Use expanded scientific keywords: crop common+scientific, pest/disease, weather, region, crop stage.\n"
-            + "- Reformulate into multiple sub-queries and synthesize across them.\n"
-            + "- Target 5-10 relevant records; if weak evidence, broaden with synonyms and related terms.\n"
-            + "- Filter weak metadata-only signals and prioritize entries with useful abstract evidence.\n"
+            # ── 1. Pests are not diseases ────────────────────────────────
+            + "RULE 1 - PESTS AND DISEASES ARE DIFFERENT THINGS:\n"
+            + "- PEST = animal: insect, mite, nematode, slug, rodent, bird.\n"
+            + "  (aphids, borers, beetles, thrips, whitefly, armyworm, mites)\n"
+            + "- DISEASE = pathogen: fungus, oomycete, bacterium, virus.\n"
+            + "  (rusts, blights, blotches, mildews, wilts, mosaic viruses)\n"
+            + "- Never file a fungal disease under 'pests'.\n"
+            + "- If the user asked about PESTS, lead with pests and keep the\n"
+            + "  disease section short and clearly labelled as additional context.\n"
+            + "- If the user asked about DISEASES, do the reverse.\n"
+            + "- If they asked about both or were vague, cover both evenly.\n"
             + "\n"
-            + "GRAPH-BASED REASONING (MANDATORY):\n"
-            + "- Build links: Crop -> pests/diseases, Weather -> activation, Region -> outbreak patterns.\n"
-            + "- Rank risk by environmental suitability, epidemiology, and growth stage vulnerability.\n"
+            # ── 2. Do not invent facts the user never supplied ────────────
+            + "RULE 2 - NEVER ASSUME UNSTATED CONDITIONS:\n"
+            + "- Do NOT invent a growth stage. If the user did not state one,\n"
+            + "  express stage-dependent risk conditionally instead:\n"
+            + "  'High ONLY if the crop is at flowering; low before that'.\n"
+            + "- Do NOT invent a temperature. 'Humid' does not mean 'warm'.\n"
+            + "  If temperature is unknown, say which temperature band each\n"
+            + "  threat needs, and note the risk flips outside that band.\n"
+            + "  (Example: stripe rust needs cool 10-15 C and fades above ~22 C,\n"
+            + "  so it is NOT automatically high risk in humid weather.)\n"
+            + "- Do NOT invent a location, season, variety, or sowing date.\n"
+            + "- State the 2-4 assumptions you had to make, in one short line.\n"
             + "\n"
-            + "OUTPUT FORMAT (STRICT):\n"
-            + "1) Identified High-Risk Pests/Diseases\n"
-            + "- Name (common + scientific if possible)\n"
-            + "- Risk Level: High / Medium / Low\n"
-            + "- Why: weather + crop stage linkage\n"
+            # ── 3. Chemicals are jurisdiction-bound ──────────────────────
+            + "RULE 3 - CHEMICAL CONTROL:\n"
+            + "- Use ACTIVE INGREDIENT names only (e.g. 'prothioconazole').\n"
+            + "- NEVER name commercial products or brands. No trade names,\n"
+            + "  no registered-trademark symbols, no product-specific dose rates.\n"
+            + "- Give FRAC/IRAC group codes so the user can plan rotation.\n"
+            + "- Registration differs by country. Do not present any product as\n"
+            + "  available to this user. One short caveat line is enough - do not\n"
+            + "  repeat the disclaimer in every row.\n"
             + "\n"
-            + "2) Weather-Disease/Pest Link\n"
-            + "- Explain mechanistic effect of humidity/temperature/rainfall on outbreak\n"
+            # ── 4. Evidence must earn its place ──────────────────────────
+            + "RULE 4 - EVIDENCE:\n"
+            + "- Cite a source ONLY if you have an actual finding from it.\n"
+            + "- If the retrieved records are metadata-only (titles/IDs with no\n"
+            + "  abstract or result), they support nothing. OMIT the evidence\n"
+            + "  section entirely. Do not list record IDs, and do not write a\n"
+            + "  paragraph explaining that the evidence was insufficient.\n"
+            + "  At most one short line: 'Based on established epidemiology\n"
+            + "  rather than the retrieved records.'\n"
+            + "- Never pad the answer with sources that add no information.\n"
             + "\n"
-            + "3) AGRIS Evidence (NOT GENERIC)\n"
-            + "- Summarize 2-3 specific findings with region/year context when available\n"
+            # ── 5. Shape and length ─────────────────────────────────────
+            + "OUTPUT FORMAT (GitHub-flavoured markdown, rendered in a NARROW\n"
+            + "chat column - keep tables to 3 columns maximum):\n"
             + "\n"
-            + "4) If AGRIS is insufficient\n"
-            + "- Explicitly state limitations\n"
-            + "- Add labeled expert-backed insights\n"
+            + "## Short answer\n"
+            + "2-3 sentences. Directly answer what was asked, ranked. No preamble.\n"
             + "\n"
-            + "5) Actionable Recommendations\n"
-            + "- Monitoring: exactly what to scout and thresholds/signs\n"
-            + "- Preventive practices\n"
-            + "- Chemical control: active ingredients and resistance-rotation notes\n"
+            + "## <Pests|Diseases - whichever was asked about>\n"
+            + "A table: | Name (common + scientific) | Risk | Conditional on |\n"
+            + "Max 5 rows. 'Conditional on' names the stage/temperature that\n"
+            + "would raise or drop that risk. Rank highest risk first.\n"
             + "\n"
-            + "STRICT RULES:\n"
-            + "- Do not provide generic textbook advice.\n"
-            + "- Always provide useful field-level actions.\n"
-            + "- Always connect evidence to the user's query context.\n"
+            + "## <The other category>\n"
+            + "Same table shape, max 4 rows, clearly marked as secondary.\n"
+            + "\n"
+            + "## Why humid conditions drive this\n"
+            + "3-5 bullets max. Mechanism only: moisture -> biology -> crop damage.\n"
+            + "\n"
+            + "## Scout now\n"
+            + "3-5 bullets: what to physically look for, where on the plant, and\n"
+            + "the action threshold. Concrete and checkable.\n"
+            + "\n"
+            + "## Control options\n"
+            + "Short. Active ingredients + FRAC/IRAC codes + resistance rotation.\n"
+            + "Cultural/preventive measures first where they genuinely help.\n"
+            + "\n"
+            + "## To narrow this down\n"
+            + "Ask for exactly the 3-4 missing facts that would most change the\n"
+            + "ranking above - typically location, growth stage, temperature, and\n"
+            + "how many consecutive wet days. Phrase as a short bulleted ask.\n"
+            + "\n"
+            + "HARD LIMITS:\n"
+            + "- Target 450 words. Never exceed 700.\n"
+            + "- Omit any section that would only restate another one.\n"
+            + "- No emoji. No hype. No 'Bottom Line' or motivational closers.\n"
+            + "- Prefer plain language; keep scientific names but skip jargon\n"
+            + "  the farmer cannot act on.\n"
         )
 
     def _build_general_prompt(self, user_query: str) -> str:
@@ -545,11 +594,13 @@ class GraphRAGPipeline:
         cleaned = (text or "").rstrip()
         cleaned = re.sub(r"\*\*$", "", cleaned).rstrip()
         if not cleaned:
-            return "Here is a complete summary: use integrated pest management with regular scouting, threshold-based intervention, and label-compliant products."
+            return "Sorry - I could not generate a complete answer. Please rephrase the question."
 
+        # This runs on the general (non-agronomic) path, so no crop-protection
+        # boilerplate is appended here: it used to bolt resistance-rotation and
+        # pre-harvest-interval advice onto answers that were not about farming.
         if not re.search(r"[.!?]$", cleaned):
             cleaned += "."
-        cleaned += " Consider local extension guidance, resistance rotation, and pre-harvest interval rules before application."
         return cleaned
 
     def _build_external_context(self, user_query: str, parsed: ParsedIntent, has_local_kb_context: bool):
@@ -761,7 +812,8 @@ class GraphRAGPipeline:
     ) -> Optional[str]:
         retry_prompt = (
             self._build_prompt(user_query, parsed, kg_context_text, external_context_text)
-            + "\nIMPORTANT: Provide a complete final answer with all five required sections and no unfinished bullets."
+            + "\nIMPORTANT: Produce the complete answer, ending with the"
+            + " 'To narrow this down' section. No unfinished bullets or sentences."
         )
         try:
             candidate = llm_generate(retry_prompt, self.ollama_model, self.graph_rag_llm_retry_max_tokens)
@@ -776,12 +828,12 @@ class GraphRAGPipeline:
         if not stripped:
             return True
 
+        # Anchors from the current output format. "To narrow this down" is the
+        # final section, so its absence is a genuine early-stop signal. Keep
+        # this list minimal - every false positive costs a full retry.
         required_sections = [
-            "Identified High-Risk Pests/Diseases",
-            "Weather-Disease/Pest Link",
-            "AGRIS Evidence",
-            "If AGRIS is insufficient",
-            "Actionable Recommendations",
+            "Short answer",
+            "To narrow this down",
         ]
         missing_sections = [s for s in required_sections if s.lower() not in stripped.lower()]
         if missing_sections:
@@ -832,20 +884,11 @@ class GraphRAGPipeline:
             flags=re.IGNORECASE,
         )
 
-        if "If AGRIS is insufficient".lower() not in cleaned.lower():
-            cleaned += (
-                "\n\n4) If AGRIS is insufficient\n"
-                "- AGRIS evidence may be sparse for this exact condition; recommendations include labeled expert inference where needed."
-            )
-
-        if "Actionable Recommendations".lower() not in cleaned.lower():
-            cleaned += (
-                "\n\n5) Actionable Recommendations\n"
-                "- Monitoring: scout twice weekly for early lesions/insect hotspots in lower canopy and field edges.\n"
-                "- Preventive practices: improve aeration, avoid excess nitrogen, and remove heavily infected plant debris.\n"
-                "- Chemical control: rotate mode of action and follow label dose/PHI with local extension guidance."
-            )
-
+        # Deliberately no boilerplate sections are appended here. Bolting on
+        # canned "Actionable Recommendations" text produced exactly the generic,
+        # off-format filler the prompt forbids, and it fired on every answer
+        # because the section names it looked for were from an older format.
+        # Repairing a dangling sentence is fine; inventing agronomic advice is not.
         return cleaned
 
     def _fallback_response(self, parsed: ParsedIntent, kg_context_text: str) -> str:

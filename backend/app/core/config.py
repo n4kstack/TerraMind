@@ -45,13 +45,13 @@ EMBEDDING_MODEL_NAME: str = os.getenv(
 OPENROUTER_API_KEY: str = os.getenv("OPENROUTER_API_KEY", "").strip()
 OPENROUTER_MODEL_NAME: str = os.getenv(
     "OPENROUTER_MODEL_NAME",
-    os.getenv("GEMINI_MODEL_NAME", os.getenv("OLLAMA_MODEL_NAME", "z-ai/glm-4.5-air:free")),
+    os.getenv("GEMINI_MODEL_NAME", os.getenv("OLLAMA_MODEL_NAME", "nvidia/nemotron-3-ultra-550b-a55b:free")),
 )
 OPENROUTER_TEMPERATURE: float = float(
     os.getenv("OPENROUTER_TEMPERATURE", os.getenv("GEMINI_TEMPERATURE", os.getenv("OLLAMA_TEMPERATURE", "0.3")))
 )
 OPENROUTER_TIMEOUT_SECONDS: int = int(
-    os.getenv("OPENROUTER_TIMEOUT", os.getenv("GEMINI_TIMEOUT", os.getenv("OLLAMA_TIMEOUT", "120")))
+    os.getenv("OPENROUTER_TIMEOUT", os.getenv("GEMINI_TIMEOUT", os.getenv("OLLAMA_TIMEOUT", "240")))
 )
 OPENROUTER_REASONING_EFFORT: str = os.getenv("OPENROUTER_REASONING_EFFORT", "low").strip().lower()
 

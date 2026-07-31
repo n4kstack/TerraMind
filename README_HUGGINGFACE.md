@@ -25,15 +25,16 @@ In Space Settings -> Variables and secrets, add:
 - You can copy from `HUGGINGFACE_VARIABLES.env.example` for Variables.
 
 - `OPENROUTER_API_KEY` (secret)
-- `OPENROUTER_MODEL_NAME` = `z-ai/glm-4.5-air:free`
+- `OPENROUTER_MODEL_NAME` = `nvidia/nemotron-3-ultra-550b-a55b:free`
 - `OPENROUTER_TEMPERATURE` = `0.3`
-- `OPENROUTER_TIMEOUT` = `120`
+- `OPENROUTER_TIMEOUT` = `240`
 - `OPENROUTER_REASONING_EFFORT` = `low`
-- `GRAPH_RAG_MODEL` = `z-ai/glm-4.5-air:free`
-- `GRAPH_RAG_FALLBACK_MODEL` = `z-ai/glm-4.5-air:free`
-- `GRAPH_RAG_MODEL_CANDIDATES` = `z-ai/glm-4.5-air:free`
-- `GRAPH_RAG_LLM_MAX_TOKENS` = `1200`
-- `GRAPH_RAG_LLM_RETRY_MAX_TOKENS` = `1600`
+- `GRAPH_RAG_MODEL` = `nvidia/nemotron-3-ultra-550b-a55b:free`
+- `GRAPH_RAG_FALLBACK_MODEL` = `nvidia/nemotron-3-super-120b-a12b:free`
+- `GRAPH_RAG_MODEL_CANDIDATES` = `google/gemma-4-31b-it:free`
+- `GRAPH_RAG_LLM_MAX_TOKENS` = `4000`
+- `GRAPH_RAG_LLM_RETRY_MAX_TOKENS` = `5000`
+- `TERRAMIND_REPORT_NUM_PREDICT` = `5000`
 
 Optional overrides:
 - `TERRAMIND_TOP_K`

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Bot, Loader2, Send, ShieldCheck, Sprout, Network } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { graphRagService } from '../services/graphRagService';
 
 const starterQueries = [
@@ -10,14 +11,46 @@ const starterQueries = [
   'Is copper oxychloride safe in alkaline soil?',
 ];
 
+// Normalise line endings only. Do NOT insert blank lines between single
+// newlines - that splits markdown tables and tight lists into loose
+// paragraphs. Block spacing is handled by the typography plugin.
 function formatAssistantResponse(text) {
   if (!text) return '';
 
-  const normalized = String(text).replace(/\r\n/g, '\n').trim();
-  return normalized
-    .replace(/([^\n])\n(?!\n)/g, '$1\n\n')
-    .replace(/\n{3,}/g, '\n\n');
+  return String(text)
+    .replace(/\r\n/g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
 }
+
+// Tables can exceed the chat column, so each one scrolls inside its own
+// container rather than forcing the whole bubble to scroll sideways.
+const markdownComponents = {
+  table: ({ node, ...props }) => (
+    <div className="my-4 overflow-x-auto rounded-lg border border-slate-700/60">
+      <table className="w-full text-left text-xs border-collapse m-0" {...props} />
+    </div>
+  ),
+  thead: ({ node, ...props }) => <thead className="bg-slate-900/70" {...props} />,
+  th: ({ node, ...props }) => (
+    <th
+      className="px-3 py-2 font-semibold text-indigo-300 border-b border-slate-700/60 align-top"
+      {...props}
+    />
+  ),
+  td: ({ node, ...props }) => (
+    <td className="px-3 py-2 border-b border-slate-800/60 align-top" {...props} />
+  ),
+  h2: ({ node, ...props }) => (
+    <h2 className="text-sm font-bold text-white mt-5 mb-2 first:mt-0" {...props} />
+  ),
+  h3: ({ node, ...props }) => (
+    <h3 className="text-xs font-bold uppercase tracking-wider text-indigo-300 mt-4 mb-1.5" {...props} />
+  ),
+  code: ({ node, ...props }) => (
+    <code className="px-1 py-0.5 rounded bg-slate-900/80 text-emerald-300 text-[11px]" {...props} />
+  ),
+};
 
 function GraphRAGChat() {
   const [messages, setMessages] = useState([]);
@@ -131,8 +164,10 @@ function GraphRAGChat() {
                   }`}
                >
                   {m.role === 'assistant' ? (
-                    <div className="prose prose-invert prose-sm max-w-none prose-p:my-3 prose-p:leading-relaxed prose-strong:text-white prose-strong:font-bold prose-ul:pl-4 prose-li:my-1">
-                      <ReactMarkdown>{formatAssistantResponse(m.content)}</ReactMarkdown>
+                    <div className="prose prose-invert prose-sm max-w-none prose-p:my-2.5 prose-p:leading-relaxed prose-strong:text-white prose-strong:font-semibold prose-ul:my-2 prose-ul:pl-4 prose-ol:my-2 prose-ol:pl-4 prose-li:my-0.5 prose-li:leading-relaxed">
+                      <ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>
+                        {formatAssistantResponse(m.content)}
+                      </ReactMarkdown>
                      </div>
                   ) : (
                      <div className="font-medium whitespace-pre-wrap">{m.content}</div>
