@@ -35,7 +35,6 @@ from ml.advisor_edge import MODE_CENTRAL, MODE_EDGE
 from ml.advisor_edge import candidates as C
 from ml.advisor_edge import features as F
 from ml.advisor_edge.registry import CENTRAL_DIR, registry
-from ml.pre_sowing_advisor.crop_prior import apply_crop_prior
 
 logger = logging.getLogger(__name__)
 
@@ -147,29 +146,6 @@ def _decode_top3(proba: np.ndarray, label_encoder) -> tuple[list, str, float]:
     return top3, top3[0]["crop"], top3[0]["confidence"]
 
 
-def _crop_ranking(
-    proba: np.ndarray, label_encoder, payload: Dict[str, Any]
-) -> tuple[list, str, float, Dict[str, Any]]:
-    """Rank crops from model probabilities, modulated by district history.
-
-    The Crop Recommender sees no geography -- its features are soil chemistry
-    and weather only -- so on its own it returns the same crop for every state
-    given the same soil reading. The district prior supplies that missing
-    signal from recorded cultivation area. Identical in both modes, so central
-    and edge stay comparable.
-    """
-    probs = {str(c): float(p) for c, p in zip(label_encoder.classes_, proba)}
-    adjusted, meta = apply_crop_prior(
-        probs,
-        state=payload.get("state") or payload.get("state_name") or "",
-        district=payload.get("district") or payload.get("district_name") or "",
-    )
-
-    ranked = sorted(adjusted.items(), key=lambda kv: kv[1], reverse=True)[:3]
-    top3 = [{"crop": c, "confidence": round(float(p), 4)} for c, p in ranked]
-    return top3, top3[0]["crop"], top3[0]["confidence"], meta
-
-
 def predict_central(payload: Dict[str, Any]) -> Dict[str, Any]:
     """Full five-target inference using the central reference models."""
     scaler = central_artifacts.get("crop_scaler")
@@ -178,7 +154,7 @@ def predict_central(payload: Dict[str, Any]) -> Dict[str, Any]:
 
     Xc = _crop_vector(payload, scaler)
     proba = crop_model.predict_proba(Xc)[0]
-    top3, crop, confidence, crop_meta = _crop_ranking(proba, le, payload)
+    top3, crop, confidence = _decode_top3(proba, le)
 
     pre = central_artifacts.get("irrigation_preprocessor")
     Xi = _irrigation_vector(payload, crop, pre)
@@ -205,7 +181,6 @@ def predict_central(payload: Dict[str, Any]) -> Dict[str, Any]:
         "irrigation_need": irr_need,
         "irrigation_type_probabilities": type_probs,
         "expected_yield": round(max(expected_yield, 0.0), 4),
-        "crop_prior": crop_meta,
     }
 
 
@@ -222,7 +197,7 @@ def predict_edge(payload: Dict[str, Any], state: str) -> Dict[str, Any]:
 
     Xc = _crop_vector(payload, scaler)
     proba = registry.shared_model("crop").predict_proba(Xc)[0]
-    top3, crop, confidence, crop_meta = _crop_ranking(proba, le, payload)
+    top3, crop, confidence = _decode_top3(proba, le)
 
     pre = central_artifacts.get("irrigation_preprocessor")
     Xi = _irrigation_vector(payload, crop, pre)
@@ -253,7 +228,6 @@ def predict_edge(payload: Dict[str, Any], state: str) -> Dict[str, Any]:
         "irrigation_need": irr_need,
         "irrigation_type_probabilities": type_probs,
         "expected_yield": round(max(calibrated, 0.0), 4),
-        "crop_prior": crop_meta,
     }
 
 

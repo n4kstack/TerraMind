@@ -150,24 +150,6 @@ def run_two_mode_pipeline_detailed(
         irrigation_result.setdefault("district_irrigation_summary", "")
         irrigation_result.setdefault("irrigation_reasoning", "")
 
-    # Explain the district prior in system_notes -- a pre-existing free-text
-    # list, so nothing is added to the schema.
-    crop_meta = predictions.get("crop_prior") or {}
-    if crop_meta.get("prior_applied"):
-        top_local = ", ".join(crop_meta.get("top_district_crops", []))
-        scope = crop_meta.get("scope", "district")
-        if crop_meta.get("reordered"):
-            system_notes.append(
-                f"Crop choice adjusted for local cultivation history "
-                f"({scope}-level: {top_local}); soil profile alone favoured "
-                f"{crop_meta.get('model_top')}."
-            )
-        else:
-            system_notes.append(
-                f"Crop choice consistent with {scope} cultivation history "
-                f"({top_local})."
-            )
-
     system_notes.append(f"Served via {decision.mode} mode ({decision.reason}).")
 
     # ── Response assembly: byte-for-byte the pre-refactor shape ────────────
