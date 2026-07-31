@@ -3,7 +3,7 @@ TerraMind - Unified Inference Pipeline
 
 Orchestrates the full prediction flow:
   Step 1: Validate & normalise input
-  Step 2: Select execution mode (central / edge)
+  Step 2: Select execution mode (central / edge / local_only)
   Step 3: Run Crop Recommender
   Step 4: Apply bounded local adaptation (edge mode)
   Step 5: Run Yield Predictor for selected crop
