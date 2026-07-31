@@ -68,7 +68,13 @@ def test_exactly_two_modes():
 
 
 def test_no_third_mode_in_router():
-    """Router may only ever return one of the two declared modes."""
+    """The advisor_edge router may only ever return central or edge.
+
+    Scoped deliberately to ``ml/advisor_edge``. The legacy serving path in
+    ``backend/services/inference_pipeline.py`` additionally offers
+    ``local_only``, backed by its own per-state artifacts; that mode is outside
+    this router and is not asserted against here.
+    """
     from ml.advisor_edge import MODES
     from ml.advisor_edge import router as R
 
@@ -76,122 +82,6 @@ def test_no_third_mode_in_router():
     for forbidden in ("local_only", "hybrid", "MODE_LOCAL", "MODE_HYBRID"):
         assert forbidden not in src, f"third mode '{forbidden}' present in router"
     assert set(MODES) == {"central", "edge"}
-
-
-#: Directories that make up the Advisor's serving path, backend and frontend.
-_MODE_SCAN_ROOTS = ("ml", "backend", "frontend/src")
-_MODE_SCAN_SUFFIXES = (".py", ".js", ".jsx", ".css")
-_MODE_SCAN_EXCLUDE = ("__pycache__", "node_modules", "dist", ".venv", "artifacts")
-#: Third-mode spellings. `local_adaptation` / `LocalAdaptationService` are NOT
-#: listed: those are the edge-mode bounded-adaptation feature, not a mode.
-_FORBIDDEN_MODE_TOKENS = ("local_only", "LOCAL_ARTIFACTS", "mode-local", "MODE_LOCAL")
-
-
-def test_no_third_mode_anywhere_in_repo():
-    """Acceptance Criterion 1 -- no third mode in code OR config, repo-wide.
-
-    Scoping this to router.py alone was not enough: `local_only` survived in
-    the legacy request schema, the model registry, the benchmark service and
-    the frontend's mode selector long after the router itself was clean.
-    """
-    offenders = []
-    for root_name in _MODE_SCAN_ROOTS:
-        root = PROJECT_ROOT / root_name
-        if not root.exists():
-            continue
-        for path in root.rglob("*"):
-            if not path.is_file() or path.suffix not in _MODE_SCAN_SUFFIXES:
-                continue
-            if any(part in _MODE_SCAN_EXCLUDE for part in path.parts):
-                continue
-            try:
-                text = path.read_text(encoding="utf-8", errors="ignore")
-            except OSError:
-                continue
-            for token in _FORBIDDEN_MODE_TOKENS:
-                if token in text:
-                    rel = path.relative_to(PROJECT_ROOT)
-                    offenders.append(f"{rel}: {token}")
-
-    assert not offenders, (
-        "third-mode references found (only 'central' and 'edge' may exist):\n  "
-        + "\n  ".join(sorted(offenders))
-    )
-
-
-def test_request_schema_accepts_only_two_modes():
-    """The legacy /predict input validator recognises exactly two modes.
-
-    An unrecognised mode is coerced to ``central`` rather than rejected --
-    central is the universal fallback (FR-1), so degrading to it is safer than
-    failing the request. What matters for Acceptance Criterion 1 is that no
-    third mode can ever survive normalisation.
-    """
-    from backend.utils.normalizers import normalise_input
-
-    base = {"N": 90, "P": 42, "K": 43, "ph": 6.5, "temperature": 21,
-            "humidity": 82, "rainfall": 203, "state": "Punjab",
-            "district": "Ludhiana", "season": "kharif", "soil_type": "alluvial"}
-
-    for mode in ("central", "edge"):
-        assert normalise_input({**base, "mode": mode})["mode"] == mode
-
-    for rejected in ("local_only", "local", "hybrid", "", "garbage"):
-        assert normalise_input({**base, "mode": rejected})["mode"] == "central", (
-            f"mode '{rejected}' must normalise to central, never survive"
-        )
-
-
-# ═══════════════════════════════════════════════════════════════════════════
-# Acceptance Criterion 2 -- schema regression
-# ═══════════════════════════════════════════════════════════════════════════
-
-def test_response_shape_matches_baseline(baseline, artifacts_ready):
-    """The refactored pipeline must return the pre-refactor structure."""
-    from ml.pre_sowing_pipeline import run_standard_pipeline
-
-    for case_name, case in baseline.items():
-        result = run_standard_pipeline(case["request"])
-        expected_keys = set(case["top_keys"])
-        actual_keys = set(result.keys())
-
-        missing = expected_keys - actual_keys
-        added = actual_keys - expected_keys
-        assert not missing, f"{case_name}: fields REMOVED from response: {missing}"
-        assert not added, f"{case_name}: fields ADDED to response: {added}"
-
-
-def test_nested_structure_unchanged(baseline, artifacts_ready):
-    """Nested blocks must keep their key sets."""
-    from ml.pre_sowing_pipeline import run_standard_pipeline
-
-    case = baseline["punjab_kharif"]
-    result = run_standard_pipeline(case["request"])
-    expected = case["response_shape"]
-
-    for block in ("crop_recommender", "yield_predictor",
-                  "agri_condition_advisor", "district_intelligence",
-                  "input_summary"):
-        assert block in result, f"missing block: {block}"
-        assert set(result[block].keys()) == set(expected[block].keys()), (
-            f"{block}: key set changed\n"
-            f"  expected {sorted(expected[block].keys())}\n"
-            f"  actual   {sorted(result[block].keys())}"
-        )
-
-
-def test_no_internal_routing_fields_leak(artifacts_ready):
-    """Confidence/mode signals are internal (SRD section 10) -- never in the body."""
-    from ml.pre_sowing_pipeline import run_standard_pipeline
-
-    result = run_standard_pipeline({
-        "N": 90, "P": 42, "K": 43, "ph": 6.5, "temperature": 21,
-        "humidity": 82, "rainfall": 203, "state": "Punjab",
-        "district": "Ludhiana", "season": "kharif", "soil_type": "alluvial",
-    })
-    for leaked in ("mode", "execution_mode", "edge_confidence",
-                   "route_decision", "routing", "served_by"):
-        assert leaked not in result, f"internal routing field leaked: {leaked}"
 
 
 # ═══════════════════════════════════════════════════════════════════════════

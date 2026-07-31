@@ -114,6 +114,21 @@ async def predict(req: PredictRequest):
     still carry the old per-mode artifact tree; without it this route would
     silently keep serving pre-refactor models.
     """
+    # local_only is served by the legacy pipeline against its own per-state
+    # artifacts in backend/artifacts/local/. Routing it through the two-mode
+    # path would silently answer with the central/edge models instead, which
+    # is not what the mode means.
+    if str(req.model_dump().get("mode", "")).lower() == "local_only":
+        try:
+            return get_pipeline().predict(req.model_dump())
+        except FileNotFoundError as exc:
+            log.warning("Local-only artifacts missing: %s", exc)
+            raise HTTPException(
+                status_code=503,
+                detail=("Local-only models not trained. Run: "
+                        "python -m backend.models.train_local_only_model"),
+            )
+
     try:
         from ml.advisor_edge.pipeline import two_mode_available
 

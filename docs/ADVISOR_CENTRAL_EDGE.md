@@ -201,13 +201,25 @@ central on those states rather than merely matching it. Report both R² and MAE
 when interpreting: R² on a low-variance subset exaggerates modest absolute
 errors.
 
-**The crop recommender scores 1.0 on every split.** This is a property of
-`crop_dataset_rebuilt.csv` — 7,700 rows, 10 perfectly balanced classes, no
-duplicates — not evidence of model quality. It predates this refactor and is
-unchanged by it. Treat the crop-recommender gap numbers as uninformative.
+**The crop recommender scores 1.0 on every split, and it is genuine.** Audited
+directly: 0 exact duplicates, 0 duplicate feature vectors, and 0 of 1540 test
+points have a near-duplicate in train (median NN distance 0.4709). A 1-NN
+classifier with no training reaches 0.9844 on the same split. The crop classes
+occupy distinct climate envelopes — rice needs 150–300 mm rainfall at 80–95%
+humidity, millets 30–60 mm at 30–55% — so the data is separable by
+construction and ~100% is the correct answer for it.
 
-**Irrigation type tops out around 0.45 accuracy** on 4 classes. CatBoost
-improved it from the previous 0.4295, but the ceiling is in the data.
+The number describes the dataset's difficulty, not the model's sophistication.
+Crop-recommender gap figures between central and edge are therefore
+uninformative: both models sit on the same ceiling.
+
+**Irrigation type tops out around 0.45 accuracy** on 4 classes, and the
+ceiling is in the data rather than the model. Reference points on the same
+split: majority-class baseline 0.3035, 1-NN 0.3685, 15-NN 0.4245. No two rows
+share a feature vector with conflicting labels, so the labels are not
+contradictory — they are only weakly determined by the seven available
+features. A tuned model beating ~0.45 by a wide margin on this feature set
+would be cause for suspicion, not celebration.
 
 ---
 
