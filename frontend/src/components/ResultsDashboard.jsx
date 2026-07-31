@@ -44,7 +44,10 @@ export default function ResultsDashboard({ result }) {
     <div className="space-y-5 animate-in">
       {/* Header badges */}
       <div className="flex flex-wrap items-center gap-3">
-        <span className={`mode-badge mode-${execution_mode === 'local_only' ? 'local' : execution_mode}`}>
+        {/* Only two modes exist: central and edge. The badge shows the mode
+            that actually served this request, which may differ from the one
+            requested if the state has no qualified edge node. */}
+        <span className={`mode-badge mode-${execution_mode === 'edge' ? 'edge' : 'central'}`}>
           {execution_mode} mode
         </span>
         {adaptation_applied && (
