@@ -36,7 +36,7 @@ def normalise_input(data: dict) -> dict:
 
     # Execution mode
     mode = str(data.get("mode", "central")).lower()
-    if mode not in ("central", "edge", "local_only"):
+    if mode not in ("central", "edge"):
         mode = "central"
     cleaned["mode"] = mode
 
