@@ -32,6 +32,7 @@ from backend.app.api.v1.advisor   import router as advisor_v1
 from backend.app.api.v1.monitor   import router as monitor_v1
 from backend.app.api.v1.diagnosis import router as diagnosis_v1
 from backend.app.api.v1.chatbot   import router as chatbot_v1
+from backend.app.api.v1.architecture import router as architecture_v1
 
 from backend.core.logging_config import log
 from backend.core.config import API_HOST, API_PORT, MODEL_VERSION, EDGE_ARTIFACTS
@@ -65,6 +66,7 @@ app.include_router(advisor_v1,   prefix="/api/v1/advisor",   tags=["v1-advisor"]
 app.include_router(monitor_v1,   prefix="/api/v1/monitor",   tags=["v1-monitor"])
 app.include_router(diagnosis_v1, prefix="/api/v1/diagnosis", tags=["v1-diagnosis"])
 app.include_router(chatbot_v1,   prefix="/api/v1/chatbot",   tags=["v1-chatbot"])
+app.include_router(architecture_v1, prefix="/api/v1/architecture", tags=["v1-architecture"])
 
 # Graph RAG integration
 from backend.app.api.v1.graph_rag import router as graph_rag_v1

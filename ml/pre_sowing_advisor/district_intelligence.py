@@ -43,14 +43,7 @@ from ml.pre_sowing_advisor.normalizers import (
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-
-# Reference data is located through the shared resolver rather than a fixed
-# folder name (SRD section 7). The hardcoded "dataset before sowing" path meant
-# every lookup here failed silently whenever the files lived anywhere else --
-# which is why all seven district insights returned null.
-from ml import data_sources as _ds
-
-DATASET_DIR = _ds.dataset_dir()
+DATASET_DIR = PROJECT_ROOT / "dataset before sowing"
 
 # ═══════════════════════════════════════════════════════════════════════
 # Crop name → ICRISAT column prefix mapping
@@ -119,7 +112,7 @@ def _load_icrisat() -> pd.DataFrame:
     if _icrisat_df is not None:
         return _icrisat_df
 
-    p = _ds.icrisat_main() or (DATASET_DIR / "ICRISAT-District Level Data.csv")
+    p = DATASET_DIR / "ICRISAT-District Level Data.csv"
     if not p.exists():
         logger.warning("ICRISAT district data not found: %s", p)
         _icrisat_df = pd.DataFrame()
@@ -142,7 +135,7 @@ def _load_icrisat_source() -> pd.DataFrame:
     if _icrisat_source_df is not None:
         return _icrisat_source_df
 
-    p = _ds.icrisat_source() or (DATASET_DIR / "ICRISAT-District Level Data Source.csv")
+    p = DATASET_DIR / "ICRISAT-District Level Data Source.csv"
     if not p.exists():
         logger.warning("ICRISAT Source data not found: %s", p)
         _icrisat_source_df = pd.DataFrame()
@@ -164,7 +157,7 @@ def _load_icrisat_irrigation() -> pd.DataFrame:
     if _icrisat_irrigation_df is not None:
         return _icrisat_irrigation_df
 
-    p = _ds.icrisat_irrigation() or (DATASET_DIR / "ICRISAT-District Level Data Irrigation.csv")
+    p = DATASET_DIR / "ICRISAT-District Level Data Irrigation.csv"
     if not p.exists():
         logger.warning("ICRISAT Irrigation data not found: %s", p)
         _icrisat_irrigation_df = pd.DataFrame()
@@ -188,7 +181,7 @@ def _load_production_data() -> pd.DataFrame:
 
     frames = []
 
-    p1 = _ds.crop_production_xlsx() or (DATASET_DIR / "crop_production.csv.xlsx")
+    p1 = DATASET_DIR / "crop_production.csv.xlsx"
     if p1.exists():
         try:
             df1 = pd.read_excel(p1)
@@ -201,7 +194,7 @@ def _load_production_data() -> pd.DataFrame:
         })
         frames.append(df1)
 
-    p2 = _ds.india_agri_csv() or (DATASET_DIR / "India Agriculture Crop Production.csv")
+    p2 = DATASET_DIR / "India Agriculture Crop Production.csv"
     if p2.exists():
         df2 = pd.read_csv(p2)
         rename = {}
@@ -483,18 +476,14 @@ def _best_historical_season(
 
 def _ten_year_trajectory_icrisat(
     state: str, district: str, crop: str,
-) -> Tuple[str, Optional[Dict[str, list]]]:
+) -> str:
     """'Your recommended crop's 10-year yield trajectory'
-
+    
     Reads ICRISAT YIELD column year-by-year and summarises the last 10 years.
-
-    Returns the prose summary AND the underlying series as
-    ``{"years": [...], "yields": [...]}`` so the UI can plot it. Emitting only
-    the sentence left the trajectory chart with nothing to draw.
     """
     df = _load_icrisat()
     if df.empty:
-        return "No ICRISAT data available for trajectory analysis.", None
+        return "No ICRISAT data available for trajectory analysis."
 
     prefix = _resolve_icrisat_prefix(crop)
     if prefix is None:
@@ -514,8 +503,7 @@ def _ten_year_trajectory_icrisat(
     yearly = yearly[yearly > 0]
 
     if len(yearly) < 2:
-        return (f"Only {len(yearly)} year(s) of ICRISAT data for {crop} in this district.",
-                None)
+        return f"Only {len(yearly)} year(s) of ICRISAT data for {crop} in this district."
 
     # Last 10 years
     if len(yearly) > 10:
@@ -533,23 +521,16 @@ def _ten_year_trajectory_icrisat(
 
     direction = "increased" if change_pct > 5 else ("decreased" if change_pct < -5 else "remained stable")
 
-    summary = (
+    return (
         f"10-year yield trajectory ({years[0]}–{years[-1]}): "
         f"{prefix.title()} yield {direction} by {abs(change_pct):.1f}% "
         f"(from {start_val:.0f} to {end_val:.0f} Kg/ha). "
         f"Average: {avg_val:.0f} Kg/ha, "
         f"Range: [{min_val:.0f}, {max_val:.0f}] Kg/ha."
     )
-    series = {
-        "years": [int(y) for y in years],
-        "yields": [round(float(v), 2) for v in yields],
-    }
-    return summary, series
 
 
-def _ten_year_trajectory_fallback(
-    state: str, district: str, crop: str,
-) -> Tuple[str, Optional[Dict[str, list]]]:
+def _ten_year_trajectory_fallback(state: str, district: str, crop: str) -> str:
     """Fallback trajectory using production datasets."""
     prod_df = _load_production_data()
     norm_crop = normalize_crop_name(crop)
@@ -560,14 +541,14 @@ def _ten_year_trajectory_fallback(
     if data.empty:
         data = prod_df[(prod_df["state"] == state) & (prod_df["crop"] == norm_crop)].dropna(subset=["year", "yield"])
         if data.empty:
-            return "No historical data available for trajectory analysis.", None
+            return "No historical data available for trajectory analysis."
 
     yearly = data.groupby("year")["yield"].mean().sort_index()
     if len(yearly) > 10:
         yearly = yearly.tail(10)
 
     if len(yearly) < 2:
-        return f"Only {len(yearly)} year(s) of data.", None
+        return f"Only {len(yearly)} year(s) of data."
 
     years = yearly.index.tolist()
     yields = yearly.values
@@ -575,17 +556,12 @@ def _ten_year_trajectory_fallback(
     change = ((end_val - start_val) / start_val * 100) if start_val > 0 else 0
     direction = "increased" if change > 5 else ("decreased" if change < -5 else "remained stable")
 
-    summary = (
+    return (
         f"Yield trajectory ({int(years[0])}–{int(years[-1])}): "
         f"{direction} by {abs(change):.1f}% "
         f"({start_val:.2f} → {end_val:.2f}). "
         f"Average: {np.mean(yields):.2f}, Range: [{np.min(yields):.2f}, {np.max(yields):.2f}]."
     )
-    series = {
-        "years": [int(y) for y in years],
-        "yields": [round(float(v), 2) for v in yields],
-    }
-    return summary, series
 
 
 def _irrigation_infrastructure_summary(
@@ -603,6 +579,9 @@ def _irrigation_infrastructure_summary(
     if dist_data.empty:
         return f"No irrigation infrastructure data for '{district}'.", {}
 
+    # Use latest year
+    latest = dist_data[dist_data["year"] == dist_data["year"].max()]
+
     # Source columns are exactly known
     source_map = {
         "Canals": "CANALS AREA (1000 ha)",
@@ -612,34 +591,12 @@ def _irrigation_infrastructure_summary(
         "Other Sources": "OTHER SOURCES AREA (1000 ha)",
     }
 
-    def _read_year(rows) -> Dict[str, float]:
-        """Sum each source for one year, treating ICRISAT sentinels as missing.
-
-        ICRISAT encodes "not reported" as -1 rather than blank. Summing those
-        as if they were measurements, or merely filtering on ``> 0``, silently
-        discards the whole year -- which is what left districts like Lucknow
-        with no infrastructure breakdown at all.
-        """
-        out: Dict[str, float] = {}
-        for name, col in source_map.items():
-            if col not in rows.columns:
-                continue
-            vals = pd.to_numeric(rows[col], errors="coerce")
-            vals = vals[vals >= 0]          # drop the -1 sentinel
-            if vals.empty:
-                continue
-            total_val = float(vals.sum())
-            if total_val > 0:
-                out[name] = round(total_val, 2)
-        return out
-
-    # Walk back from the most recent year until one reports usable figures.
-    # The latest year is frequently a stub row of sentinels.
     sources: Dict[str, float] = {}
-    for year in sorted(dist_data["year"].dropna().unique(), reverse=True):
-        sources = _read_year(dist_data[dist_data["year"] == year])
-        if sources:
-            break
+    for name, col in source_map.items():
+        if col in latest.columns:
+            val = pd.to_numeric(latest[col], errors="coerce").sum()
+            if val > 0:
+                sources[name] = round(float(val), 2)
 
     if not sources:
         return "Irrigation infrastructure data could not be parsed.", {}
@@ -765,7 +722,7 @@ def get_district_intelligence(
         insights.append(season_note)
 
         # 5. 10-year trajectory
-        trajectory, trajectory_series = _ten_year_trajectory_icrisat(state, district, crop_norm)
+        trajectory = _ten_year_trajectory_icrisat(state, district, crop_norm)
         insights.append(trajectory)
 
         # 6. Irrigation infrastructure
@@ -785,12 +742,8 @@ def get_district_intelligence(
             "top_competing_crops": competitors,
             "best_historical_season": best_season,
             "ten_year_trajectory_summary": trajectory,
-            # Raw series for the UI charts. The summary strings above are for
-            # reading; these are for plotting.
-            "ten_year_trajectory_data": trajectory_series,
             "irrigation_infrastructure_summary": infra_summary,
             "irrigation_infrastructure_breakdown": infra_breakdown,
-            "irrigation_infrastructure_data": infra_breakdown or None,
             "crop_irrigated_area_percent": irr_pct,
             "insights": insights,
             "notes": notes,
@@ -807,10 +760,8 @@ def get_district_intelligence(
             "top_competing_crops": [],
             "best_historical_season": "unknown",
             "ten_year_trajectory_summary": "District intelligence unavailable.",
-            "ten_year_trajectory_data": None,
             "irrigation_infrastructure_summary": "Unavailable.",
             "irrigation_infrastructure_breakdown": {},
-            "irrigation_infrastructure_data": None,
             "crop_irrigated_area_percent": None,
             "insights": [],
             "notes": ["District intelligence data unavailable in this deployment."],

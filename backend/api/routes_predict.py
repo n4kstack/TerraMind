@@ -16,26 +16,13 @@ router = APIRouter(tags=["prediction"])
 
 
 def _fallback_predict(req: PredictRequest) -> dict:
-    """Serve /predict from the two-mode router, mapped to the legacy shape.
-
-    ``execution_mode`` reports the mode that ACTUALLY served the request as
-    decided by the router -- not the mode the caller asked for. A request may
-    ask for edge and be answered by central (no node, disabled, breaker open,
-    low confidence), and the UI should show what happened.
-    """
+    """Fallback path for deployments without backend/artifacts models."""
     t_start = time.time()
     payload = req.model_dump()
+    mode = payload.get("mode", "central")
     payload["model_mode"] = "standard"
 
-    try:
-        from ml.advisor_edge.pipeline import run_two_mode_pipeline_detailed
-
-        result, decision, district_intel = run_two_mode_pipeline_detailed(payload)
-        mode = decision.mode
-    except Exception:
-        result = run_standard_pipeline(payload)
-        district_intel = result.get("district_intelligence", {})
-        mode = payload.get("mode", "central")
+    result = run_standard_pipeline(payload)
 
     top3 = [
         {
@@ -47,7 +34,7 @@ def _fallback_predict(req: PredictRequest) -> dict:
         for item in result.get("crop_recommender", {}).get("top_3", [])
     ]
 
-    district = {**result.get("district_intelligence", {}), **district_intel}
+    district = result.get("district_intelligence", {})
     agri = result.get("agri_condition_advisor", {})
     latency_ms = round((time.time() - t_start) * 1000, 1)
 
@@ -104,44 +91,17 @@ async def predict(req: PredictRequest):
     """
     Run the full pre-sowing prediction pipeline.
 
-    Exactly two modes exist:
-      - **central**: full-dataset reference models, universal fallback
-      - **edge**: the state's regional node when one is qualified
-
-    The routed two-mode pipeline is the primary path so this endpoint serves
-    the same retrained models as ``/api/v1/advisor/predict``. The legacy
-    ``InferencePipeline`` remains only as a fallback for deployments that
-    still carry the old per-mode artifact tree; without it this route would
-    silently keep serving pre-refactor models.
+    Supports three modes:
+      - **central**: Full-power centralized model (gold standard)
+      - **edge**: Compressed model + local adaptation layer
+      - **local_only**: Local-only benchmark model
     """
-    # local_only is served by the legacy pipeline against its own per-state
-    # artifacts in backend/artifacts/local/. Routing it through the two-mode
-    # path would silently answer with the central/edge models instead, which
-    # is not what the mode means.
-    if str(req.model_dump().get("mode", "")).lower() == "local_only":
-        try:
-            return get_pipeline().predict(req.model_dump())
-        except FileNotFoundError as exc:
-            log.warning("Local-only artifacts missing: %s", exc)
-            raise HTTPException(
-                status_code=503,
-                detail=("Local-only models not trained. Run: "
-                        "python -m backend.models.train_local_only_model"),
-            )
-
-    try:
-        from ml.advisor_edge.pipeline import two_mode_available
-
-        if two_mode_available():
-            return _fallback_predict(req)
-    except Exception as exc:
-        log.warning("Two-mode pipeline unavailable on /predict: %s", exc)
-
     try:
         pipeline = get_pipeline()
-        return pipeline.predict(req.model_dump())
+        result = pipeline.predict(req.model_dump())
+        return result
     except FileNotFoundError as exc:
-        log.warning("Legacy /predict artifacts missing, using fallback pipeline: %s", exc)
+        log.warning("Primary /predict artifacts missing, using fallback pipeline: %s", exc)
         try:
             return _fallback_predict(req)
         except Exception as fallback_exc:

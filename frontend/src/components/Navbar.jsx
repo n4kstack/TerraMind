@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink } from 'react-router-dom';
-import { Leaf, Sprout, Activity, Search, Zap, Award, Network } from 'lucide-react';
+import { Leaf, Sprout, Activity, Search, Zap, Award, Network, GitBranch } from 'lucide-react';
 
 const NavItem = ({ to, icon: Icon, label, pulseOnActive = false }) => (
   <NavLink
@@ -46,6 +46,7 @@ export default function Navbar({ modelMode, version }) {
             <NavItem to="/monitor" icon={Activity} label="Monitor" />
             <NavItem to="/diagnosis" icon={Search} label="Diagnosis" />
             <NavItem to="/graphrag" icon={Network} label="AugNosis" />
+            <NavItem to="/architecture" icon={GitBranch} label="Architecture" pulseOnActive />
           </div>
 
           {/* Status Indicators */}
