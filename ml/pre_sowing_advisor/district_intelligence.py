@@ -43,7 +43,14 @@ from ml.pre_sowing_advisor.normalizers import (
 logger = logging.getLogger(__name__)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
-DATASET_DIR = PROJECT_ROOT / "dataset before sowing"
+
+# Reference data is located through the shared resolver rather than a fixed
+# folder name (SRD section 7). The hardcoded "dataset before sowing" path meant
+# every lookup here failed silently whenever the files lived anywhere else --
+# which is why all seven district insights returned null.
+from ml import data_sources as _ds
+
+DATASET_DIR = _ds.dataset_dir()
 
 # ═══════════════════════════════════════════════════════════════════════
 # Crop name → ICRISAT column prefix mapping
@@ -112,7 +119,7 @@ def _load_icrisat() -> pd.DataFrame:
     if _icrisat_df is not None:
         return _icrisat_df
 
-    p = DATASET_DIR / "ICRISAT-District Level Data.csv"
+    p = _ds.icrisat_main() or (DATASET_DIR / "ICRISAT-District Level Data.csv")
     if not p.exists():
         logger.warning("ICRISAT district data not found: %s", p)
         _icrisat_df = pd.DataFrame()
@@ -135,7 +142,7 @@ def _load_icrisat_source() -> pd.DataFrame:
     if _icrisat_source_df is not None:
         return _icrisat_source_df
 
-    p = DATASET_DIR / "ICRISAT-District Level Data Source.csv"
+    p = _ds.icrisat_source() or (DATASET_DIR / "ICRISAT-District Level Data Source.csv")
     if not p.exists():
         logger.warning("ICRISAT Source data not found: %s", p)
         _icrisat_source_df = pd.DataFrame()
@@ -157,7 +164,7 @@ def _load_icrisat_irrigation() -> pd.DataFrame:
     if _icrisat_irrigation_df is not None:
         return _icrisat_irrigation_df
 
-    p = DATASET_DIR / "ICRISAT-District Level Data Irrigation.csv"
+    p = _ds.icrisat_irrigation() or (DATASET_DIR / "ICRISAT-District Level Data Irrigation.csv")
     if not p.exists():
         logger.warning("ICRISAT Irrigation data not found: %s", p)
         _icrisat_irrigation_df = pd.DataFrame()
@@ -181,7 +188,7 @@ def _load_production_data() -> pd.DataFrame:
 
     frames = []
 
-    p1 = DATASET_DIR / "crop_production.csv.xlsx"
+    p1 = _ds.crop_production_xlsx() or (DATASET_DIR / "crop_production.csv.xlsx")
     if p1.exists():
         try:
             df1 = pd.read_excel(p1)
@@ -194,7 +201,7 @@ def _load_production_data() -> pd.DataFrame:
         })
         frames.append(df1)
 
-    p2 = DATASET_DIR / "India Agriculture Crop Production.csv"
+    p2 = _ds.india_agri_csv() or (DATASET_DIR / "India Agriculture Crop Production.csv")
     if p2.exists():
         df2 = pd.read_csv(p2)
         rename = {}
