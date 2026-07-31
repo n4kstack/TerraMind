@@ -27,9 +27,10 @@ MERGE_XLS          = DATASET_DIR / "main merge (droped _merge==2) (560 dist 1990
 ARTIFACTS_DIR     = PROJECT_ROOT / "backend" / "artifacts"
 CENTRAL_ARTIFACTS = ARTIFACTS_DIR / "central"
 EDGE_ARTIFACTS    = ARTIFACTS_DIR / "edge"
+LOCAL_ARTIFACTS   = ARTIFACTS_DIR / "local"
 
 # Ensure artifact dirs exist
-for d in [CENTRAL_ARTIFACTS, EDGE_ARTIFACTS]:
+for d in [CENTRAL_ARTIFACTS, EDGE_ARTIFACTS, LOCAL_ARTIFACTS]:
     d.mkdir(parents=True, exist_ok=True)
 
 # ── Model hyper-parameters ──────────────────────────────────────────────────
