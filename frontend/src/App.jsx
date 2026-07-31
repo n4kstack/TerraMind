@@ -5,7 +5,6 @@ import Advisor from './pages/Advisor';
 import Monitor from './pages/Monitor';
 import Diagnosis from './pages/Diagnosis';
 import GraphRAG from './pages/GraphRAG';
-import Architecture from './pages/Architecture';
 
 export default function App() {
   return (
@@ -17,7 +16,6 @@ export default function App() {
           <Route path="/diagnosis" element={<Diagnosis />} />
           <Route path="/chatbot" element={<Navigate to="/diagnosis" replace />} />
           <Route path="/graphrag" element={<GraphRAG />} />
-          <Route path="/architecture" element={<Architecture />} />
           
           {/* Fallback for deep-linked legacy paths if any */}
           <Route path="*" element={<Navigate to="/" replace />} />
