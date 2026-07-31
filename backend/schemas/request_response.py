@@ -21,7 +21,7 @@ class PredictRequest(BaseModel):
     district: str = Field(..., description="District name")
     season: str = Field(..., description="Season (kharif, rabi, etc.)")
     area: Optional[float] = Field(None, description="Cultivated area in hectares (optional)")
-    mode: str = Field("central", description="Execution mode: central | edge | local_only")
+    mode: str = Field("central", description="Execution mode: central | edge")
 
     model_config = {"json_schema_extra": {
         "examples": [{
