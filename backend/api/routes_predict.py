@@ -30,10 +30,11 @@ def _fallback_predict(req: PredictRequest) -> dict:
     try:
         from ml.advisor_edge.pipeline import run_two_mode_pipeline_detailed
 
-        result, decision = run_two_mode_pipeline_detailed(payload)
+        result, decision, district_intel = run_two_mode_pipeline_detailed(payload)
         mode = decision.mode
     except Exception:
         result = run_standard_pipeline(payload)
+        district_intel = result.get("district_intelligence", {})
         mode = payload.get("mode", "central")
 
     top3 = [
@@ -46,7 +47,7 @@ def _fallback_predict(req: PredictRequest) -> dict:
         for item in result.get("crop_recommender", {}).get("top_3", [])
     ]
 
-    district = result.get("district_intelligence", {})
+    district = {**result.get("district_intelligence", {}), **district_intel}
     agri = result.get("agri_condition_advisor", {})
     latency_ms = round((time.time() - t_start) * 1000, 1)
 

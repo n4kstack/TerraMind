@@ -52,17 +52,23 @@ def run_two_mode_pipeline(payload: Any) -> Dict[str, Any]:
     recorded in ``system_notes`` (a pre-existing free-text list) and never as a
     new field, so the v1 schema is unchanged.
     """
-    response, _decision = run_two_mode_pipeline_detailed(payload)
+    response, _decision, _intel = run_two_mode_pipeline_detailed(payload)
     return response
 
 
-def run_two_mode_pipeline_detailed(payload: Any) -> tuple[Dict[str, Any], Any]:
-    """Same as :func:`run_two_mode_pipeline` but also returns the RouteDecision.
+def run_two_mode_pipeline_detailed(
+    payload: Any,
+) -> tuple[Dict[str, Any], Any, Dict[str, Any]]:
+    """Same as :func:`run_two_mode_pipeline`, plus the routing context.
 
-    The legacy ``/predict`` surface has always exposed an ``execution_mode``
-    field, so it needs to know which mode actually served the request rather
-    than echoing back whatever the caller asked for. Callers that must not
-    change their response shape use :func:`run_two_mode_pipeline` instead.
+    Returns ``(response, decision, district_intel)``.
+
+    The legacy ``/predict`` surface exposes fields the v1 response does not --
+    ``execution_mode``, and the raw chart series ``ten_year_trajectory_data`` /
+    ``irrigation_infrastructure_data``. Those are handed back separately rather
+    than folded into ``response``, because the v1 response shape is frozen by
+    the schema-regression baseline and must not gain fields. Callers that need
+    the frozen shape use :func:`run_two_mode_pipeline`.
     """
     from ml.pre_sowing_advisor.district_intelligence import get_district_intelligence
     from ml.pre_sowing_advisor.irrigation_prior import apply_irrigation_prior
@@ -193,7 +199,7 @@ def run_two_mode_pipeline_detailed(payload: Any) -> tuple[Dict[str, Any], Any]:
         "confidence": predictions["confidence"],
         "top_3_predictions": predictions["top_3"],
         "model_type": "standard",
-    }, decision
+    }, decision, district_intel
 
 
 def _confidence_band(point: float) -> Dict[str, float]:
