@@ -59,12 +59,11 @@ export default function PredictionForm({ onSubmit, loading }) {
         </div>
       </div>
 
-      {/* Mode selector */}
+      {/* Mode selector — exactly two modes: central and edge */}
       <div className="flex gap-2 p-1 bg-slate-800/60 rounded-xl">
         {[
           { value: 'central', label: 'Central', color: 'sky' },
           { value: 'edge', label: 'Edge', color: 'emerald' },
-          { value: 'local_only', label: 'Local', color: 'amber' },
         ].map(m => (
           <button key={m.value} type="button"
             onClick={() => setForm(f => ({ ...f, mode: m.value }))}
