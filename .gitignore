@@ -44,3 +44,12 @@ trained_artifacts_fast/
 
 # Local user files
 *.crdownload
+
+# Local dataset drop (78 MB of CSV/XLSX) — resolved at runtime by
+# ml/data_sources.py. Not committed: Git LFS is configured for model
+# binaries, not raw data, and the repo history is already large.
+# Override TERRAMIND_DATA_DIR to point elsewhere.
+TerraMind_Datasets/
+
+# Scratch caches from training runs
+.cache/
