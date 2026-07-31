@@ -12,7 +12,7 @@ from typing import Any, Optional
 
 import joblib
 
-from backend.core.config import CENTRAL_ARTIFACTS, EDGE_ARTIFACTS
+from backend.core.config import CENTRAL_ARTIFACTS, EDGE_ARTIFACTS, LOCAL_ARTIFACTS
 from backend.core.logging_config import log
 
 
@@ -31,6 +31,7 @@ class ModelRegistry:
         return {
             "central":    CENTRAL_ARTIFACTS,
             "edge":       EDGE_ARTIFACTS,
+            "local_only": LOCAL_ARTIFACTS,
         }.get(mode, CENTRAL_ARTIFACTS)
 
     def _load(self, path: Path) -> Any:
