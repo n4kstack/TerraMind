@@ -1,0 +1,338 @@
+{
+  "kerala_rabi": {
+    "request": {
+      "K": 80,
+      "N": 40,
+      "P": 60,
+      "district": "Palakkad",
+      "humidity": 90,
+      "ph": 5.8,
+      "rainfall": 320,
+      "season": "rabi",
+      "soil_type": "laterite",
+      "state": "Kerala",
+      "temperature": 29
+    },
+    "response_shape": {
+      "agri_condition_advisor": {
+        "district_irrigation_summary": "str",
+        "district_prior_used": "bool",
+        "explanation": "str",
+        "irrigation_need": "str",
+        "irrigation_reasoning": "str",
+        "irrigation_type": "str",
+        "irrigation_type_probabilities": {
+          "canal": "float",
+          "drip": "float",
+          "rainfed": "float",
+          "sprinkler": "float"
+        },
+        "sunlight_hours": "float"
+      },
+      "confidence": "float",
+      "crop_recommender": {
+        "selected_confidence": "float",
+        "selected_crop": "str",
+        "top_3": [
+          {
+            "confidence": "float",
+            "crop": "str"
+          }
+        ]
+      },
+      "district_intelligence": {
+        "best_historical_season": "str",
+        "crop_irrigated_area_percent": "NoneType",
+        "district_crop_share_percent": "NoneType",
+        "insights": [],
+        "irrigation_infrastructure_breakdown": {},
+        "irrigation_infrastructure_summary": "str",
+        "ten_year_trajectory_summary": "str",
+        "top_competing_crops": [],
+        "yield_trend": "str"
+      },
+      "expected_yield": "float",
+      "input_summary": {
+        "K": "float",
+        "N": "float",
+        "P": "float",
+        "area": "NoneType",
+        "district": "str",
+        "humidity": "float",
+        "ph": "float",
+        "rainfall": "float",
+        "season": "str",
+        "soil_type": "str",
+        "state": "str",
+        "temperature": "float"
+      },
+      "irrigation_need": "str",
+      "irrigation_type": "str",
+      "model_type": "str",
+      "predicted_yield": "float",
+      "recommended_crop": "str",
+      "success": "bool",
+      "sunlight_hours": "float",
+      "system_notes": [
+        "str"
+      ],
+      "top_3_predictions": [
+        {
+          "confidence": "float",
+          "crop": "str"
+        }
+      ],
+      "yield_predictor": {
+        "confidence_band": {
+          "lower": "float",
+          "upper": "float"
+        },
+        "expected_yield": "float",
+        "explanation": "str",
+        "unit": "str"
+      }
+    },
+    "top_keys": [
+      "agri_condition_advisor",
+      "confidence",
+      "crop_recommender",
+      "district_intelligence",
+      "expected_yield",
+      "input_summary",
+      "irrigation_need",
+      "irrigation_type",
+      "model_type",
+      "predicted_yield",
+      "recommended_crop",
+      "success",
+      "sunlight_hours",
+      "system_notes",
+      "top_3_predictions",
+      "yield_predictor"
+    ]
+  },
+  "punjab_kharif": {
+    "request": {
+      "K": 43,
+      "N": 90,
+      "P": 42,
+      "district": "Ludhiana",
+      "humidity": 82,
+      "ph": 6.5,
+      "rainfall": 203,
+      "season": "kharif",
+      "soil_type": "alluvial",
+      "state": "Punjab",
+      "temperature": 21
+    },
+    "response_shape": {
+      "agri_condition_advisor": {
+        "district_irrigation_summary": "str",
+        "district_prior_used": "bool",
+        "explanation": "str",
+        "irrigation_need": "str",
+        "irrigation_reasoning": "str",
+        "irrigation_type": "str",
+        "irrigation_type_probabilities": {
+          "canal": "float",
+          "drip": "float",
+          "rainfed": "float",
+          "sprinkler": "float"
+        },
+        "sunlight_hours": "float"
+      },
+      "confidence": "float",
+      "crop_recommender": {
+        "selected_confidence": "float",
+        "selected_crop": "str",
+        "top_3": [
+          {
+            "confidence": "float",
+            "crop": "str"
+          }
+        ]
+      },
+      "district_intelligence": {
+        "best_historical_season": "str",
+        "crop_irrigated_area_percent": "NoneType",
+        "district_crop_share_percent": "NoneType",
+        "insights": [],
+        "irrigation_infrastructure_breakdown": {},
+        "irrigation_infrastructure_summary": "str",
+        "ten_year_trajectory_summary": "str",
+        "top_competing_crops": [],
+        "yield_trend": "str"
+      },
+      "expected_yield": "float",
+      "input_summary": {
+        "K": "float",
+        "N": "float",
+        "P": "float",
+        "area": "NoneType",
+        "district": "str",
+        "humidity": "float",
+        "ph": "float",
+        "rainfall": "float",
+        "season": "str",
+        "soil_type": "str",
+        "state": "str",
+        "temperature": "float"
+      },
+      "irrigation_need": "str",
+      "irrigation_type": "str",
+      "model_type": "str",
+      "predicted_yield": "float",
+      "recommended_crop": "str",
+      "success": "bool",
+      "sunlight_hours": "float",
+      "system_notes": [
+        "str"
+      ],
+      "top_3_predictions": [
+        {
+          "confidence": "float",
+          "crop": "str"
+        }
+      ],
+      "yield_predictor": {
+        "confidence_band": {
+          "lower": "float",
+          "upper": "float"
+        },
+        "expected_yield": "float",
+        "explanation": "str",
+        "unit": "str"
+      }
+    },
+    "top_keys": [
+      "agri_condition_advisor",
+      "confidence",
+      "crop_recommender",
+      "district_intelligence",
+      "expected_yield",
+      "input_summary",
+      "irrigation_need",
+      "irrigation_type",
+      "model_type",
+      "predicted_yield",
+      "recommended_crop",
+      "success",
+      "sunlight_hours",
+      "system_notes",
+      "top_3_predictions",
+      "yield_predictor"
+    ]
+  },
+  "rajasthan_zaid": {
+    "request": {
+      "K": 25,
+      "N": 20,
+      "P": 30,
+      "district": "Jaipur",
+      "humidity": 35,
+      "ph": 7.8,
+      "rainfall": 45,
+      "season": "zaid",
+      "soil_type": "sandy",
+      "state": "Rajasthan",
+      "temperature": 34
+    },
+    "response_shape": {
+      "agri_condition_advisor": {
+        "district_irrigation_summary": "str",
+        "district_prior_used": "bool",
+        "explanation": "str",
+        "irrigation_need": "str",
+        "irrigation_reasoning": "str",
+        "irrigation_type": "str",
+        "irrigation_type_probabilities": {
+          "canal": "float",
+          "drip": "float",
+          "rainfed": "float",
+          "sprinkler": "float"
+        },
+        "sunlight_hours": "float"
+      },
+      "confidence": "float",
+      "crop_recommender": {
+        "selected_confidence": "float",
+        "selected_crop": "str",
+        "top_3": [
+          {
+            "confidence": "float",
+            "crop": "str"
+          }
+        ]
+      },
+      "district_intelligence": {
+        "best_historical_season": "str",
+        "crop_irrigated_area_percent": "NoneType",
+        "district_crop_share_percent": "NoneType",
+        "insights": [],
+        "irrigation_infrastructure_breakdown": {},
+        "irrigation_infrastructure_summary": "str",
+        "ten_year_trajectory_summary": "str",
+        "top_competing_crops": [],
+        "yield_trend": "str"
+      },
+      "expected_yield": "float",
+      "input_summary": {
+        "K": "float",
+        "N": "float",
+        "P": "float",
+        "area": "NoneType",
+        "district": "str",
+        "humidity": "float",
+        "ph": "float",
+        "rainfall": "float",
+        "season": "str",
+        "soil_type": "str",
+        "state": "str",
+        "temperature": "float"
+      },
+      "irrigation_need": "str",
+      "irrigation_type": "str",
+      "model_type": "str",
+      "predicted_yield": "float",
+      "recommended_crop": "str",
+      "success": "bool",
+      "sunlight_hours": "float",
+      "system_notes": [
+        "str"
+      ],
+      "top_3_predictions": [
+        {
+          "confidence": "float",
+          "crop": "str"
+        }
+      ],
+      "yield_predictor": {
+        "confidence_band": {
+          "lower": "float",
+          "upper": "float"
+        },
+        "expected_yield": "float",
+        "explanation": "str",
+        "unit": "str"
+      }
+    },
+    "top_keys": [
+      "agri_condition_advisor",
+      "confidence",
+      "crop_recommender",
+      "district_intelligence",
+      "expected_yield",
+      "input_summary",
+      "irrigation_need",
+      "irrigation_type",
+      "model_type",
+      "predicted_yield",
+      "recommended_crop",
+      "success",
+      "sunlight_hours",
+      "system_notes",
+      "top_3_predictions",
+      "yield_predictor"
+    ]
+  }
+}
