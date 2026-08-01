@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Leaf, Menu, X } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { NAV_ITEMS } from './navigation';
 import { ThemeToggle } from '@/components/theme/ThemeToggle';
@@ -14,9 +14,17 @@ function Wordmark() {
       className="group flex items-center gap-2.5 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
       aria-label="TerraMind home"
     >
-      <span className="grid size-9 place-items-center rounded-md bg-primary text-primary-foreground shadow-sm transition-transform duration-200 ease-organic group-hover:scale-105">
-        <Leaf className="size-5" aria-hidden="true" />
-      </span>
+      {/* alt is empty by design: the wordmark beside it already says
+          "TerraMind" and the link carries its own aria-label, so describing the
+          mark again would just make screen readers announce it twice. Explicit
+          width/height reserve the box before the image decodes. */}
+      <img
+        src="/brand-icon-256.png"
+        alt=""
+        width={36}
+        height={36}
+        className="size-9 rounded-md shadow-sm transition-transform duration-200 ease-organic group-hover:scale-105"
+      />
       <span className="text-lg font-extrabold tracking-tight text-foreground">
         Terra<span className="text-primary">Mind</span>
       </span>
