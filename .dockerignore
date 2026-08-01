@@ -1,6 +1,24 @@
 .git
 .gitignore
 .pytest_cache
+
+# Environment files must never enter the image.
+#
+# Two separate problems this prevents:
+#  1. Secret leakage. `COPY . .` was baking the root .env — which holds a live
+#     OPENROUTER_API_KEY — into an image layer, where anyone who can pull the
+#     image can read it. Runtime config belongs in the platform's secret store.
+#  2. A broken production build. `COPY frontend/ ./` fed frontend/.env to
+#     `npm run build`, baking VITE_API_BASE_URL=http://localhost:8011 into the
+#     bundle. The container serves the SPA and the API on one origin, so the
+#     browser would have called the *user's own machine* and every request would
+#     have failed. With no .env present, VITE_API_BASE_URL is empty and the
+#     client correctly issues same-origin relative requests.
+.env
+*.env
+**/.env
+!.env.example
+!**/.env.example
 __pycache__/
 **/__pycache__/
 *.pyc
