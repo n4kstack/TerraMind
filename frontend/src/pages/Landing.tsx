@@ -105,10 +105,6 @@ function Hero() {
               <Link to="/augnosis">Ask a farming question</Link>
             </Button>
           </RevealItem>
-
-          <RevealItem as="p" className="mt-4 text-xs text-foreground dark:text-muted-foreground">
-            Free to use · No sign-up required
-          </RevealItem>
         </Reveal>
 
         {/* Real, verifiable figures only. */}
