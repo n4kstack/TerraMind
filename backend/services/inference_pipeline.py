@@ -182,15 +182,15 @@ class InferencePipeline:
     def _predict_yield(self, inputs: dict, crop: str, yp: dict) -> dict:
         """Run yield predictor and return result dict."""
         try:
+            # District history is passed in so it lands on the raw vector and
+            # gets standardised with everything else. Enriching the scaled
+            # array instead put raw t/ha where z-scores belonged.
+            crop_stats = registry.edge_cache("district_crop_stats")
             X = self.preprocessor.for_yield_predictor(
                 inputs, crop,
                 yp["scaler"], yp["le_crop"], yp["le_state"],
                 yp["le_district"], yp["le_season"], yp["metadata"],
-            )
-            # Enrich with cached stats
-            crop_stats = registry.edge_cache("district_crop_stats")
-            X = self.preprocessor.enrich_yield_features_from_cache(
-                X, inputs["state"], inputs["district"], crop, crop_stats
+                crop_stats_cache=crop_stats,
             )
 
             pred = float(yp["model"].predict(X)[0])
