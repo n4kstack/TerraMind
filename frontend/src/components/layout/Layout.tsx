@@ -6,10 +6,27 @@ import { Navbar } from './Navbar';
 import { MobileTabBar } from './MobileTabBar';
 import { LandingBackdrop } from '@/features/landing/LandingBackdrop';
 import { pageVariants } from '@/lib/motion';
+import { cn } from '@/lib/utils';
 
-function Footer() {
+/**
+ * `bare` swaps the rule and flat tint for a gradient that fades out upward. On
+ * the landing page both drew a hard horizontal edge across the growth scene;
+ * elsewhere they are the only thing separating the footer from the page.
+ *
+ * The gradient is not decoration. Removing the flat tint dropped the disclaimer
+ * to 4.36:1 in light mode against a leaf behind it, and a flat replacement would
+ * just redraw the edge we are removing. Fading to transparent leaves no seam and
+ * measures 5.0:1 where the text actually sits.
+ */
+function Footer({ bare }: { bare?: boolean }) {
   return (
-    <footer className="border-t border-border bg-card/50">
+    <footer
+      className={cn(
+        bare
+          ? 'bg-gradient-to-t from-background via-background/75 to-transparent'
+          : 'border-t border-border bg-card/50',
+      )}
+    >
       <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-4 px-4 py-8 text-sm text-muted-foreground sm:flex-row sm:px-6 lg:px-8">
         <p className="flex items-center gap-2">
           <Leaf className="size-4 text-primary" aria-hidden="true" />
@@ -74,7 +91,7 @@ export function Layout({ children }: { children: ReactNode }) {
         {children}
       </motion.main>
 
-      <Footer />
+      <Footer bare={isLanding} />
       {!isLanding && <MobileTabBar />}
     </div>
   );

@@ -141,7 +141,7 @@ function Hero() {
 
 function Modules() {
   return (
-    <section className="border-t border-border bg-card/40">
+    <section>
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <Reveal inView className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
@@ -216,7 +216,7 @@ function HowItWorks() {
 
 function TrustNote() {
   return (
-    <section className="border-t border-border bg-card/40">
+    <section>
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
         <Reveal
           inView
