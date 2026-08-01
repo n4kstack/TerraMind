@@ -1,3 +1,12 @@
+---
+title: TerraMind
+emoji: "🌱"
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
+
 # TerraMind: Smarter Farming, Every Stage
 ## Hybrid Edge-Enabled Pre-Sowing Advisor
 
