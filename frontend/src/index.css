@@ -260,8 +260,13 @@
      gains speed like it is falling; the easing only smooths the sway between
      them. Putting the acceleration in a timing function instead makes the sway
      lurch. */
+  /* 3.8s, not 4.4s, and the reason is the cadence rather than taste. A leaf is
+     released every 5s and only one may be airborne at a time, so the fall plus
+     the state cleanup that follows animationend has to fit inside the interval.
+     At 4.4s it did not: measured, alternate ticks landed while a leaf was still
+     descending and were skipped, so leaves actually fell every ~10s. */
   .tm-leaf--falling {
-    animation: tm-leaf-fall 4.4s cubic-bezier(0.42, 0, 0.58, 1) forwards;
+    animation: tm-leaf-fall 3.8s cubic-bezier(0.42, 0, 0.58, 1) forwards;
   }
 
   @keyframes tm-leaf-enter {

@@ -13,7 +13,7 @@ import {
 } from './canopy';
 
 /**
- * Leaves hanging over the hero, one of which falls every twenty seconds.
+ * Leaves hanging over the hero, one of which falls every five seconds.
  *
  * Scoped to the hero rather than pinned under the navbar. That is what lets the
  * leaves be vibrant: as a fixed band, every section on the page scrolled behind
@@ -26,7 +26,11 @@ import {
  * 210 copies of the path.
  */
 
-const FALL_INTERVAL_MS = 20_000;
+// Paired with the 3.8s fall in index.css. Only one leaf may be airborne, so the
+// animation and the state cleanup after it must both fit inside this interval —
+// a tick that lands mid-fall is skipped and that cycle stretches to 10s. 4.4s
+// was tried and measurably did exactly that.
+const FALL_INTERVAL_MS = 5_000;
 
 type LeafPhase = 'idle' | 'falling' | 'entering';
 
