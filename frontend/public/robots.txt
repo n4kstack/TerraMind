@@ -1,0 +1,11 @@
+# Without this file the SPA catch-all served index.html for /robots.txt, so
+# crawlers received HTML where a plain-text directive was expected and the
+# document was reported as invalid.
+User-agent: *
+Allow: /
+
+# Internal API surface — no crawlable content.
+Disallow: /api/
+Disallow: /predict
+Disallow: /docs
+Disallow: /redoc

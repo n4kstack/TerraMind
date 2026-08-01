@@ -2,134 +2,275 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --terra-emerald: #059669;
-  --terra-emerald-light: #10b981;
-  --terra-emerald-dark: #047857;
-  --terra-lime: #84cc16;
-  --terra-amber: #f59e0b;
-  --terra-sky: #0ea5e9;
-  --terra-violet: #8b5cf6;
-  --terra-rose: #f43f5e;
-  --bg-primary: #0f172a;
-  --bg-card: rgba(15, 23, 42, 0.7);
-  --bg-glass: rgba(255, 255, 255, 0.05);
-  --text-primary: #f1f5f9;
-  --text-secondary: #94a3b8;
-  --border-subtle: rgba(148, 163, 184, 0.15);
+/**
+ * TerraMind token layer.
+ * Source of truth: design-system/terramind/MASTER.md
+ *
+ * Values are HSL triplets WITHOUT the hsl() wrapper so Tailwind can inject an
+ * alpha channel: `bg-primary/10` -> `hsl(var(--primary) / 0.1)`.
+ * Every pair here was verified against WCAG with a contrast script; the ratios
+ * are recorded in MASTER.md §1.3. Do not hand-edit one value in isolation.
+ */
+
+@layer base {
+  :root {
+    --background: 138.5 76.5% 96.7%;
+    --foreground: 143.8 61.2% 20.2%;
+    --card: 0 0% 100%;
+    --card-foreground: 143.8 61.2% 20.2%;
+    --primary: 142.4 71.8% 29.2%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 142.1 70.6% 45.3%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --accent: 35.5 91.7% 32.9%;
+    --accent-foreground: 0 0% 100%;
+    --muted: 186.7 24.3% 92.7%;
+    /* Darkened from the source palette's #64748B, which measured 4.12:1 on
+       --muted and failed AA. #5A6B80 clears 4.5:1 on all three surfaces. */
+    --muted-foreground: 213.2 17.4% 42.7%;
+    --border: 141 78.9% 85.1%;
+    --border-input: 145 14.4% 49%;
+    --destructive: 0 72.2% 50.6%;
+    --destructive-foreground: 0 0% 100%;
+    --ring: 142.4 71.8% 29.2%;
+
+    --shadow-sm: 0 1px 2px rgba(8, 19, 13, 0.04);
+    --shadow-md: 0 4px 16px rgba(8, 19, 13, 0.06);
+    --shadow-lg: 0 12px 32px rgba(8, 19, 13, 0.08);
+
+    color-scheme: light;
+  }
+
+  .dark {
+    /* Deep forest rather than pure black: #000 on OLED smears during scroll
+       and reads as harsh next to saturated greens. */
+    --background: 147.3 40.7% 5.3%;
+    --foreground: 137.1 38.9% 92.9%;
+    --card: 150 34.8% 9%;
+    --card-foreground: 137.1 38.9% 92.9%;
+    --primary: 141.9 69.2% 58%;
+    --primary-foreground: 144.9 80.4% 10%;
+    --secondary: 142.1 70.6% 45.3%;
+    --secondary-foreground: 144.9 80.4% 10%;
+    --accent: 43.3 96.4% 56.3%;
+    --accent-foreground: 42.9 100% 5.5%;
+    --muted: 146.7 29% 12.2%;
+    --muted-foreground: 147.5 14% 66.3%;
+    --border: 146.7 30.3% 17.5%;
+    --border-input: 145 24.5% 38.4%;
+    --destructive: 0 90.6% 70.8%;
+    --destructive-foreground: 0 67.7% 6.1%;
+    --ring: 141.9 69.2% 58%;
+
+    color-scheme: dark;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    /* Anchors and scroll-into-view must clear the fixed 64px navbar. */
+    scroll-padding-top: 5rem;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: 'cv11', 'ss01';
+    text-rendering: optimizeLegibility;
+    min-height: 100dvh;
+  }
+
+  /* Visible focus is mandatory. Use :focus-visible so pointer users don't see
+     rings on click, but keyboard users always do. */
+  :focus-visible {
+    @apply outline-none ring-2 ring-ring ring-offset-2 ring-offset-background;
+  }
+
+  ::selection {
+    @apply bg-primary/20 text-foreground;
+  }
+
+  /* Chrome/Safari render stepper arrows inside the padding box, where they
+     collide with our unit suffix and clip the value. Agronomic readings are
+     typed, not stepped, so the arrows are removed entirely. */
+  input[type='number']::-webkit-outer-spin-button,
+  input[type='number']::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  input[type='number'] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+  }
+
+  /* Digits must not jitter while values animate or stream in. */
+  .tabular,
+  [data-numeric] {
+    font-variant-numeric: tabular-nums;
+  }
+
+  h1, h2, h3, h4 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-sm bg-muted-foreground/30;
+    border: 2px solid transparent;
+    background-clip: content-box;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-muted-foreground/50;
+  }
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+@layer components {
+  /* Skeleton shimmer. Reserves layout space to keep CLS < 0.1. */
+  .skeleton {
+    @apply relative overflow-hidden rounded-md bg-muted;
+  }
+  .skeleton::after {
+    content: '';
+    @apply absolute inset-0 -translate-x-full animate-shimmer;
+    background-image: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--card) / 0.6),
+      transparent
+    );
+  }
+
+  /* Organic biophilic backdrop: soft, slow-drifting colour fields. Purely
+     decorative and pointer-events-none so it can never intercept input. */
+  .biophilic-field {
+    @apply pointer-events-none fixed inset-0 -z-10 overflow-hidden;
+  }
+  .biophilic-field::before,
+  .biophilic-field::after {
+    content: '';
+    @apply absolute rounded-full blur-3xl;
+  }
+  .biophilic-field::before {
+    @apply h-[42rem] w-[42rem] bg-primary/[0.07];
+    top: -18rem;
+    right: -14rem;
+  }
+  .biophilic-field::after {
+    @apply h-[36rem] w-[36rem] bg-accent/[0.05];
+    bottom: -16rem;
+    left: -12rem;
+  }
+
+  .card-surface {
+    @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm;
+  }
+
+  /* ---------------------------------------------- landing page backdrop --- */
+  /* Written here rather than as Tailwind arbitrary values because these are
+     multi-stop gradients over token colours: in class form they become
+     unreadable strings where a single mistyped underscore fails silently. */
+
+  .aurora-blob {
+    @apply rounded-full;
+    /* Blur is the whole effect, so it cannot be dropped on mobile — but it is
+       halved there, where the layer is also ~40% smaller. */
+    filter: blur(72px);
+    /* These layers only ever translate and scale. Promoting them up front
+       stops the compositor re-rasterising a 56rem blur mid-animation. */
+    will-change: transform;
+  }
+
+  @media (min-width: 640px) {
+    .aurora-blob {
+      filter: blur(116px);
+    }
+  }
+
+  .aurora-wash {
+    background: linear-gradient(
+      118deg,
+      transparent 14%,
+      hsl(var(--primary) / 0.1) 40%,
+      hsl(var(--secondary) / 0.08) 58%,
+      transparent 84%
+    );
+    will-change: transform, opacity;
+  }
+
+  /*
+     Protects the copy the mature canopy spreads behind.
+
+     This was a centred ellipse, which was the wrong shape: the three-step
+     section runs its text from 8% to 92% of the viewport width, so most of it
+     sat outside the protected area entirely and measured 3.2:1. Full width and
+     a vertical profile instead — strongest across the band copy actually
+     occupies, easing off at the very top and bottom so the crown of the tree
+     and the soil line stay crisp. */
+  /* Light needs a markedly stronger scrim than dark, and the reason is
+     structural, not stylistic: light mode puts mid-grey body copy on a
+     near-white surface, so a green leaf lands BETWEEN the two and closes the
+     gap from both sides. Dark mode's copy is far brighter than anything behind
+     it, so the same leaf only ever helps. Landing.tsx darkens light-mode body
+     copy for exactly this reason, which is what lets this stay moderate instead
+     of near-opaque. */
+  .growth-scrim {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--background) / 0.22) 0%,
+      hsl(var(--background) / 0.56) 14%,
+      hsl(var(--background) / 0.58) 88%,
+      hsl(var(--background) / 0.32) 100%
+    );
+  }
+
+  .dark .growth-scrim {
+    background: linear-gradient(
+      to bottom,
+      hsl(var(--background) / 0.14) 0%,
+      hsl(var(--background) / 0.54) 14%,
+      hsl(var(--background) / 0.56) 88%,
+      hsl(var(--background) / 0.2) 100%
+    );
+  }
 }
 
-body {
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
-  background: var(--bg-primary);
-  color: var(--text-primary);
-  min-height: 100vh;
-  -webkit-font-smoothing: antialiased;
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  /* Only ever apply to transform/opacity animations, and always paired with
+     removal after the animation settles. */
+  .gpu {
+    transform: translateZ(0);
+  }
 }
 
-/* Glassmorphism card */
-.glass-card {
-  background: var(--bg-glass);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid var(--border-subtle);
-  border-radius: 16px;
-  transition: all 0.3s ease;
+/**
+ * Reduced motion. This must be the last rule and use !important: it has to beat
+ * Framer Motion's inline styles and every animation utility above.
+ * Motion is reduced to ~0 rather than removed so that animation `onComplete`
+ * callbacks still fire and components relying on them don't hang.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
-
-.glass-card:hover {
-  border-color: rgba(148, 163, 184, 0.3);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
-}
-
-/* Animated gradient background */
-.gradient-bg {
-  background: linear-gradient(135deg, #0f172a 0%, #1e293b 40%, #0f172a 70%, #1a1a2e 100%);
-  position: relative;
-  overflow: hidden;
-}
-
-.gradient-bg::before {
-  content: '';
-  position: fixed;
-  top: -50%;
-  left: -50%;
-  width: 200%;
-  height: 200%;
-  background: radial-gradient(circle at 30% 50%, rgba(5, 150, 105, 0.08) 0%, transparent 50%),
-              radial-gradient(circle at 70% 30%, rgba(14, 165, 233, 0.06) 0%, transparent 50%),
-              radial-gradient(circle at 50% 80%, rgba(139, 92, 246, 0.05) 0%, transparent 50%);
-  animation: aurora 20s ease-in-out infinite alternate;
-  pointer-events: none;
-  z-index: 0;
-}
-
-@keyframes aurora {
-  0% { transform: translate(0%, 0%) rotate(0deg); }
-  50% { transform: translate(-5%, 5%) rotate(3deg); }
-  100% { transform: translate(5%, -3%) rotate(-2deg); }
-}
-
-/* Confidence bar */
-.confidence-bar {
-  height: 8px;
-  border-radius: 999px;
-  background: linear-gradient(90deg, var(--terra-emerald), var(--terra-lime));
-  transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-/* Pulse animation */
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(5, 150, 105, 0.3); }
-  50% { box-shadow: 0 0 20px 4px rgba(5, 150, 105, 0.15); }
-}
-
-.pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
-}
-
-/* Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-}
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: rgba(148, 163, 184, 0.3);
-  border-radius: 3px;
-}
-
-/* Spinner */
-.spinner {
-  border: 3px solid rgba(255, 255, 255, 0.1);
-  border-top: 3px solid var(--terra-emerald);
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Mode badge */
-.mode-badge {
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
-
-.mode-central { background: rgba(14, 165, 233, 0.2); color: #38bdf8; border: 1px solid rgba(14, 165, 233, 0.3); }
-.mode-edge    { background: rgba(5, 150, 105, 0.2); color: #34d399; border: 1px solid rgba(5, 150, 105, 0.3); }
-.mode-local   { background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.3); }
