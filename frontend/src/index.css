@@ -210,6 +210,103 @@
     will-change: transform, opacity;
   }
 
+  /* ------------------------------------------------- hero leaf canopy --- */
+
+  /*
+     One leaf detaches every 20s and falls. Transform and opacity only, so this
+     stays on the compositor and can never shift layout.
+
+     Distances are in the SVG's own user units, not pixels: the canopy is
+     width-driven, so the browser scales the whole fall with the viewport and
+     this is responsive without a single breakpoint. `--tm-fall` is set from the
+     one constant in canopy.ts.
+
+     transform-box/origin matter — an SVG element's default transform origin is
+     the viewBox origin, so without fill-box the leaf would swing around the
+     top-left corner of the drawing instead of spinning on itself. */
+  .tm-leaf {
+    transform-box: fill-box;
+    transform-origin: 50% 50%;
+  }
+
+  @keyframes tm-leaf-fall {
+    0% {
+      transform: translate(0px, 0px) rotate(0deg);
+      opacity: 1;
+    }
+    18% {
+      transform: translate(20px, calc(var(--tm-fall) * 0.09)) rotate(46deg);
+      opacity: 1;
+    }
+    38% {
+      transform: translate(-24px, calc(var(--tm-fall) * 0.26)) rotate(-32deg);
+      opacity: 1;
+    }
+    58% {
+      transform: translate(22px, calc(var(--tm-fall) * 0.48)) rotate(54deg);
+      opacity: 0.9;
+    }
+    78% {
+      transform: translate(-18px, calc(var(--tm-fall) * 0.72)) rotate(-22deg);
+      opacity: 0.55;
+    }
+    100% {
+      transform: translate(10px, var(--tm-fall)) rotate(34deg);
+      opacity: 0;
+    }
+  }
+
+  /* The vertical stops accelerate (0.09 / 0.26 / 0.48 / 0.72 / 1) so the leaf
+     gains speed like it is falling; the easing only smooths the sway between
+     them. Putting the acceleration in a timing function instead makes the sway
+     lurch. */
+  .tm-leaf--falling {
+    animation: tm-leaf-fall 4.4s cubic-bezier(0.42, 0, 0.58, 1) forwards;
+  }
+
+  @keyframes tm-leaf-enter {
+    from {
+      opacity: 0;
+      transform: scale(0.55) rotate(-14deg);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1) rotate(0deg);
+    }
+  }
+
+  /* Fades in the moment its predecessor detaches, so the count never dips. */
+  .tm-leaf--enter {
+    animation: tm-leaf-enter 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+  }
+
+  /*
+     Local scrim behind the hero copy only.
+
+     This is what pays for the leaves being vibrant. The canopy paints above the
+     growth scene's full-viewport scrim, so the leaves are undimmed; rather than
+     wash the whole leaf canvas to protect text, the protection is confined to
+     the block that actually needs it. Light gets more than dark for the usual
+     reason — mid-grey copy on a near-white surface leaves a green leaf sitting
+     between the two. */
+  .hero-copy-scrim {
+    background: radial-gradient(
+      58% 46% at 50% 40%,
+      hsl(var(--background) / 0.9) 0%,
+      hsl(var(--background) / 0.68) 52%,
+      transparent 100%
+    );
+  }
+
+  .dark .hero-copy-scrim {
+    background: radial-gradient(
+      58% 46% at 50% 40%,
+      hsl(var(--background) / 0.8) 0%,
+      hsl(var(--background) / 0.54) 52%,
+      transparent 100%
+    );
+  }
+
   /*
      Protects the copy the mature canopy spreads behind.
 

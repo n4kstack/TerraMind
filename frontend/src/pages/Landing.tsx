@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { NAV_ITEMS } from '@/components/layout/navigation';
 import { Reveal, RevealItem } from '@/components/ui/Reveal';
+import { CanopyBorder } from '@/features/landing/CanopyBorder';
 import stateDistrictMapping from '@/data/state_district_mapping.json';
 
 /**
@@ -52,11 +53,24 @@ const STEPS = [
 
 function Hero() {
   return (
-    // The backdrop moved to <LandingBackdrop>, mounted from <Layout> as a
-    // sibling of <main>: the growth scene is fixed, and a fixed element nested
-    // under <main> resolves against main's transform during the route
-    // transition instead of the viewport.
+    // The aurora and growth scene are mounted from <Layout> as siblings of
+    // <main>: both are fixed, and a fixed element nested under <main> resolves
+    // against main's transform during the route transition instead of the
+    // viewport. The canopy below is absolute, so it has no such constraint and
+    // lives here, with the section it decorates.
     <section className="relative">
+      {/* Leaves hang over the hero and scroll away with it. Absolute rather
+          than fixed, so no other section ends up reading through foliage. */}
+      <CanopyBorder />
+
+      {/* Local scrim, sized to the copy rather than to the canvas. This is what
+          pays for the canopy being vibrant: it lifts contrast exactly where the
+          badge, heading, sub-copy and buttons sit, and nowhere else. */}
+      <div
+        className="hero-copy-scrim pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem]"
+        aria-hidden="true"
+      />
+
       {/* Deeper bottom padding than the other sections: it is the stage the
           seedling stands in before the first scroll. */}
       <div className="mx-auto max-w-7xl px-4 pb-28 pt-16 sm:px-6 sm:pt-24 lg:px-8 lg:pb-40">

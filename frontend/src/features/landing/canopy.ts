@@ -10,13 +10,23 @@
  * here animates, so the whole band rasterises once.
  */
 
-export const CANOPY_VIEW = { width: 1440, height: 240 } as const;
+/**
+ * The foliage occupies only the top ~240 units; the rest is fall room. Leaf
+ * coordinates are unchanged by the taller box — the SVG is width-driven, so a
+ * taller viewBox extends downward without moving or rescaling anything.
+ */
+export const CANOPY_VIEW = { width: 1440, height: 620, foliage: 240 } as const;
+
+/** Fall distance in user units. Expressed in viewBox space on purpose: the SVG
+ *  scales with its container, so this is responsive for free rather than needing
+ *  a breakpoint-specific pixel value. */
+export const CANOPY_FALL = 430;
 
 /** Phones get a centred crop rather than a shrunken copy, so leaves keep a
  *  readable size instead of collapsing into green confetti. */
 export const CANOPY_VIEW_BOX = {
-  wide: `0 0 1440 240`,
-  compact: `430 0 580 240`,
+  wide: `0 0 1440 620`,
+  compact: `430 0 580 620`,
 } as const;
 
 export interface CanopyLeaf {
@@ -87,18 +97,28 @@ function reachAt(x: number, random: () => number): number {
   return 56 + edge * 80 + wave + random() * 22;
 }
 
-function build(): CanopyLeaf[] {
-  const random = seeded(0x5ac31f);
-  const leaves: CanopyLeaf[] = [];
+const SPREAD_FROM = -60;
+const SPREAD_TO = CANOPY_VIEW.width + 60;
+const COUNT = 210;
 
-  // Overhang both edges so the band never shows a seam at the viewport border.
-  const from = -60;
-  const to = CANOPY_VIEW.width + 60;
-  const COUNT = 210;
+/**
+ * Places one leaf at `x`.
+ *
+ * Extracted so a replacement leaf drops into the same distribution as the
+ * original 210. The sequence of random() calls is identical to the original
+ * inline version — changing it would reshuffle every existing leaf, and the
+ * arrangement is meant to stay exactly as it is.
+ */
+interface PlacedLeaf extends CanopyLeaf {
+  /** Paint order key. Deliberately NOT the opacity: the leaves are sorted for
+   *  overlap, and deriving that from opacity means any brightness change
+   *  silently reshuffles which leaf sits over which. Frozen to the original
+   *  expression so the arrangement survives re-tuning. */
+  order: number;
+}
 
-  for (let i = 0; i < COUNT; i += 1) {
-    // Even spread with jitter, rather than uniform random, which clumps.
-    const x = from + ((to - from) * (i + random() * 0.9)) / COUNT;
+function placeAt(x: number, random: () => number): PlacedLeaf {
+  {
     const reach = reachAt(x, random);
 
     // Depth is biased toward the top so the band is dense where it meets the
@@ -116,23 +136,50 @@ function build(): CanopyLeaf[] {
 
     const scale = (0.42 + random() * 0.46) * (1 - 0.2 * settle);
 
-    leaves.push({
+    const tone = random() > 0.45 ? 'text-secondary' : 'text-primary';
+    const fade = random();
+
+    return {
       transform: `translate(${r1(x)} ${r1(y)}) rotate(${r1(angle)}) scale(${r1(scale)})`,
-      tone: random() > 0.45 ? 'text-secondary' : 'text-primary',
+      tone,
       // Deeper leaves fade, so the band dissolves instead of stopping.
       //
-      // The ceiling is measured, not chosen. This layer paints ABOVE the growth
-      // scene's legibility scrim, so nothing dims it, and page content scrolls
-      // straight through the band underneath. At 0.35 a leaf behind the modules
-      // intro measured 4.42:1 in dark mode. Dark is the binding case: light-mode
-      // body copy on this page is --foreground and clears comfortably, but dark
-      // keeps the muted tone and sits far closer to a mid-green leaf.
-      opacity: r1((0.14 + random() * 0.13) * (1 - 0.5 * settle ** 1.2)),
-    });
+      // These were capped at 0.27 while the canopy was a fixed band that every
+      // section scrolled behind — a leaf over the modules intro measured 4.42:1.
+      // Now that the band is scoped to the hero, the only copy behind it is the
+      // hero's own, which gets a local scrim, so the leaves can be vibrant.
+      opacity: r1((0.42 + fade * 0.34) * (1 - 0.5 * settle ** 1.2)),
+      // r1() is load-bearing, not cosmetic. The original key was the rounded
+      // opacity, so leaves tied at one decimal and a stable sort left them in
+      // build order. An unrounded key breaks those ties differently and
+      // reshuffles the overlap.
+      order: r1((0.14 + fade * 0.13) * (1 - 0.5 * settle ** 1.2)),
+    };
   }
+}
 
-  // Painter's order: deepest first, so the dense top mass overlaps the stragglers.
-  return leaves.sort((a, b) => b.opacity - a.opacity);
+function build(): CanopyLeaf[] {
+  const random = seeded(0x5ac31f);
+  const leaves: PlacedLeaf[] = [];
+  for (let i = 0; i < COUNT; i += 1) {
+    // Even spread with jitter, rather than uniform random, which clumps.
+    const x = SPREAD_FROM + ((SPREAD_TO - SPREAD_FROM) * (i + random() * 0.9)) / COUNT;
+    leaves.push(placeAt(x, random));
+  }
+  // Painter's order, unchanged from the original arrangement.
+  return leaves.sort((a, b) => b.order - a.order).map(({ order: _order, ...leaf }) => leaf);
 }
 
 export const CANOPY_LEAVES: readonly CanopyLeaf[] = build();
+
+/**
+ * A fresh leaf anywhere in the band, for replacing one that has fallen.
+ *
+ * Uses Math.random rather than the seeded stream on purpose — replacements
+ * should differ between sessions, where the base arrangement should not.
+ */
+export function randomCanopyLeaf(): CanopyLeaf {
+  const x = SPREAD_FROM + Math.random() * (SPREAD_TO - SPREAD_FROM);
+  const { order: _order, ...leaf } = placeAt(x, Math.random);
+  return leaf;
+}
