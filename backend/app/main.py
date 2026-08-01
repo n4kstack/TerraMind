@@ -19,6 +19,7 @@ for path in [PROJECT_ROOT, BACKEND_ROOT]:
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 
@@ -43,6 +44,12 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
 )
+
+# Compress responses. Measured with Lighthouse against this server: the JS/CSS
+# bundle was served uncompressed, costing ~1.65s of load time and ~300 kB on the
+# wire (react-vendor alone dropped 174.6 kB -> 57 kB once gzipped).
+# minimum_size skips tiny JSON payloads where framing overhead exceeds the win.
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # CORS - allow frontend dev server
 app.add_middleware(
@@ -72,11 +79,47 @@ app.include_router(graph_rag_v1, prefix="/api/v1/graph-rag", tags=["v1-graph-rag
 
 
 # Serve prebuilt frontend (if available) so a single container can host UI + API.
+#
+# NOTE ON ORDERING: this is defined as a function and invoked at the BOTTOM of
+# this module, after every API route has been registered. Starlette matches
+# routes in registration order, so the `/{full_path:path}` catch-all below
+# shadows anything registered after it. Previously this block ran inline here,
+# which left `/health`, `/api/states` and `/api/districts/{state}` permanently
+# unreachable (404) whenever a built frontend was present — the catch-all
+# matched them first and raised 404 from its passthrough guard. Uptime checks
+# against /health failed, and the frontend's state/district dropdowns silently
+# fell back to their bundled copy of the dataset.
 FRONTEND_DIST = PROJECT_ROOT / "frontend" / "dist"
-if FRONTEND_DIST.exists():
+
+
+class ImmutableStaticFiles(StaticFiles):
+    """
+    Serves /assets with a one-year immutable cache.
+
+    Safe specifically because Vite content-hashes every filename under /assets
+    (index-84wK2YQI.js); a new build produces a new URL, so a stale cache entry
+    can never be served for changed content. Previously these responses carried
+    no Cache-Control at all, which Lighthouse flagged as a 0-second TTL on every
+    asset — returning visitors re-downloaded the whole bundle each time.
+
+    index.html is deliberately NOT covered here: it is the un-hashed entry point
+    that names the hashed assets, and it must always revalidate.
+    """
+
+    def file_response(self, *args, **kwargs):  # type: ignore[override]
+        response = super().file_response(*args, **kwargs)
+        response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+        return response
+
+
+def mount_frontend() -> None:
+    """Register SPA static-file and fallback routes. Must be called last."""
+    if not FRONTEND_DIST.exists():
+        return
+
     assets_dir = FRONTEND_DIST / "assets"
     if assets_dir.exists():
-        app.mount("/assets", StaticFiles(directory=str(assets_dir)), name="frontend-assets")
+        app.mount("/assets", ImmutableStaticFiles(directory=str(assets_dir)), name="frontend-assets")
 
     # index.html must never be cached. Vite fingerprints every file under
     # /assets, so those are safe to cache forever, but the entry HTML is what
@@ -153,6 +196,12 @@ async def get_districts(state: str):
             sd_map = json.load(f)
         return {"districts": sd_map.get(state, [])}
     return {"districts": []}
+
+
+# ── SPA fallback (MUST be the last route registration) ──────────────────
+# Every API route above is now registered first, so the catch-all can no longer
+# shadow them. Anything added below this line will be unreachable.
+mount_frontend()
 
 
 @app.on_event("startup")
