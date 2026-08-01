@@ -6,6 +6,13 @@
 *.pdf filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
 
+# Images must be LFS-tracked regardless of size: the Hugging Face Space
+# rejects any push carrying a plain binary blob ("please use xet to store
+# binary files"), so a loose 110 KB PNG is enough to block a deploy.
+*.png filter=lfs diff=lfs merge=lfs -text
+*.jpg filter=lfs diff=lfs merge=lfs -text
+*.jpeg filter=lfs diff=lfs merge=lfs -text
+
 # District intelligence caches. Up to 5.5 MB each and rebuilt wholesale by
 # backend/utils/cache_builder.py, so keep them out of the packfile.
 backend/artifacts/edge/district_*.json filter=lfs diff=lfs merge=lfs -text
