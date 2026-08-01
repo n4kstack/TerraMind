@@ -17,13 +17,18 @@ function Wordmark() {
       {/* alt is empty by design: the wordmark beside it already says
           "TerraMind" and the link carries its own aria-label, so describing the
           mark again would just make screen readers announce it twice. Explicit
-          width/height reserve the box before the image decodes. */}
+          width/height reserve the box before the image decodes.
+
+          No rounding and no shadow: the artwork is a transparent disc, so a
+          box-shadow would trace a rectangle around empty pixels and a corner
+          radius would clip nothing. It also means the mark sits directly on the
+          bar and needs no tile to work in either theme. */}
       <img
         src="/brand-icon-256.png"
         alt=""
         width={36}
         height={36}
-        className="size-9 rounded-md shadow-sm transition-transform duration-200 ease-organic group-hover:scale-105"
+        className="size-9 transition-transform duration-200 ease-organic group-hover:scale-105"
       />
       <span className="text-lg font-extrabold tracking-tight text-foreground">
         Terra<span className="text-primary">Mind</span>
