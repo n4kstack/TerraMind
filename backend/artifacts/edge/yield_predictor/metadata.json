@@ -1,0 +1,30 @@
+{
+  "features": [
+    "crop_enc",
+    "state_enc",
+    "district_enc",
+    "season_enc",
+    "area_log",
+    "yield_lag1",
+    "yield_lag2",
+    "yield_lag3",
+    "yield_rolling3_mean",
+    "yield_rolling5_mean",
+    "area_lag1",
+    "yield_trend_slope"
+  ],
+  "metrics": {
+    "mae": 2.469424283627393,
+    "rmse": 49.258042327907624,
+    "r2": 0.972566279386252,
+    "train_time_s": 793.44
+  },
+  "residual_std": 49.257994783707915,
+  "residual_q10": -0.49753429281134914,
+  "residual_q90": 0.49127834745758237,
+  "train_samples": 273862,
+  "test_samples": 48329,
+  "trained_at": "2026-04-15T04:13:46.554084",
+  "version": "1.0.0",
+  "edge_compressed": true
+}

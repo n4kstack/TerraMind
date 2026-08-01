@@ -38,8 +38,21 @@ backend/.env
 backend/.env.*
 !backend/.env.example
 
-# Model/data artifacts (local/generated)
-backend/artifacts/
+# Model/data artifacts.
+#
+# backend/artifacts/ IS committed (via LFS). The whole directory used to be
+# ignored, which meant the deployed Space had no artifacts at all: the model
+# registry raised FileNotFoundError and /predict silently degraded to
+# _fallback_predict, whose crop recommender only sees N/P/K/pH/temp/humidity/
+# rainfall. With no state or district feature, every district returned the
+# identical crop and confidence, and district intelligence was always empty.
+#
+# Only the genuinely regenerable/unused parts stay ignored:
+#   */advisor/     - per-state yield models (236 MB) no runtime path reads
+#   fallback_events.jsonl, sync_state.json - runtime logs written in-place
+backend/artifacts/*/advisor/
+backend/artifacts/edge/fallback_events.jsonl
+backend/artifacts/**/sync_state.json
 trained_artifacts_fast/
 
 # Local user files

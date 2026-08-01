@@ -16,7 +16,16 @@ router = APIRouter(tags=["prediction"])
 
 
 def _fallback_predict(req: PredictRequest) -> dict:
-    """Fallback path for deployments without backend/artifacts models."""
+    """Fallback path for deployments without backend/artifacts models.
+
+    This path is materially weaker than the real pipeline and must never be
+    mistaken for it. Its crop recommender (ml.pre_sowing_advisor) is trained on
+    N/P/K/pH/temperature/humidity/rainfall only — it has no state or district
+    feature — so every district in the country returns the same crop at the
+    same confidence, and there is no local adaptation or district intelligence.
+    A deployment landing here is misconfigured, not merely degraded, so it says
+    so in system_notes rather than quietly serving flat predictions.
+    """
     t_start = time.time()
     payload = req.model_dump()
     mode = payload.get("mode", "central")
@@ -37,6 +46,13 @@ def _fallback_predict(req: PredictRequest) -> dict:
     district = result.get("district_intelligence", {})
     agri = result.get("agri_condition_advisor", {})
     latency_ms = round((time.time() - t_start) * 1000, 1)
+
+    system_notes = list(result.get("system_notes", []))
+    system_notes.insert(0, (
+        "Reduced-accuracy mode: backend/artifacts models are missing from this "
+        "deployment, so the crop recommendation ignores state and district and "
+        "district intelligence is unavailable."
+    ))
 
     return {
         "input_summary": result.get("input_summary", payload),
@@ -81,7 +97,7 @@ def _fallback_predict(req: PredictRequest) -> dict:
             "crop_irrigated_area_percent": district.get("crop_irrigated_area_percent"),
             "notes": district.get("notes", []),
         },
-        "system_notes": result.get("system_notes", []),
+        "system_notes": system_notes,
         "latency_ms": latency_ms,
     }
 
@@ -101,7 +117,11 @@ async def predict(req: PredictRequest):
         result = pipeline.predict(req.model_dump())
         return result
     except FileNotFoundError as exc:
-        log.warning("Primary /predict artifacts missing, using fallback pipeline: %s", exc)
+        log.error(
+            "backend/artifacts models missing (%s) - serving reduced-accuracy "
+            "fallback with no state/district signal. Ship backend/artifacts to "
+            "restore full predictions.", exc,
+        )
         try:
             return _fallback_predict(req)
         except Exception as fallback_exc:

@@ -1,0 +1,206 @@
+{
+  "andaman and nicobar": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 3500,
+    "n_classes": 4
+  },
+  "andhra pradesh": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "arunachal pradesh": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4200,
+    "n_classes": 5
+  },
+  "assam": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4200,
+    "n_classes": 5
+  },
+  "bihar": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "chandigarh": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 2800,
+    "n_classes": 3
+  },
+  "chhattisgarh": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "dadra and nagar haveli": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4200,
+    "n_classes": 5
+  },
+  "delhi": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4200,
+    "n_classes": 5
+  },
+  "goa": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 3500,
+    "n_classes": 4
+  },
+  "gujarat": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "haryana": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "himachal pradesh": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "jammu and kashmir": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "jharkhand": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "karnataka": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "kerala": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "madhya pradesh": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "maharashtra": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "manipur": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4200,
+    "n_classes": 5
+  },
+  "meghalaya": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4200,
+    "n_classes": 5
+  },
+  "mizoram": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "nagaland": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "odisha": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "puducherry": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 3500,
+    "n_classes": 4
+  },
+  "punjab": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "rajasthan": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "sikkim": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 3500,
+    "n_classes": 4
+  },
+  "tamil nadu": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "telangana": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4900,
+    "n_classes": 6
+  },
+  "tripura": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 4200,
+    "n_classes": 5
+  },
+  "uttar pradesh": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "uttarakhand": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  },
+  "west bengal": {
+    "accuracy": 1.0,
+    "macro_f1": 1.0,
+    "n_samples": 5600,
+    "n_classes": 7
+  }
+}

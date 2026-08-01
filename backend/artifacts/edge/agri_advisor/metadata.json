@@ -1,0 +1,103 @@
+{
+  "feature_cols": [
+    "ph",
+    "temperature",
+    "humidity",
+    "rainfall",
+    "crop_enc",
+    "soil_type_enc",
+    "season_enc"
+  ],
+  "cat_cols": [
+    "crop",
+    "soil_type",
+    "season"
+  ],
+  "num_cols": [
+    "ph",
+    "temperature",
+    "humidity",
+    "rainfall"
+  ],
+  "metrics": {
+    "sunlight_hours": {
+      "mae": 0.39668393561869364,
+      "rmse": 0.5029427283259897,
+      "r2": 0.9656025326162593
+    },
+    "irrigation_type": {
+      "accuracy": 0.428,
+      "macro_precision": 0.4424920658382931,
+      "macro_recall": 0.42595571689108197,
+      "macro_f1": 0.4311389496090127,
+      "per_class": {
+        "0": {
+          "precision": 0.46037735849056605,
+          "recall": 0.37770897832817335,
+          "f1-score": 0.41496598639455784,
+          "support": 323.0
+        },
+        "1": {
+          "precision": 0.4186046511627907,
+          "recall": 0.3847980997624703,
+          "f1-score": 0.400990099009901,
+          "support": 421.0
+        },
+        "2": {
+          "precision": 0.5092936802973977,
+          "recall": 0.45666666666666667,
+          "f1-score": 0.48154657293497366,
+          "support": 300.0
+        },
+        "3": {
+          "precision": 0.38169257340241797,
+          "recall": 0.48464912280701755,
+          "f1-score": 0.4270531400966184,
+          "support": 456.0
+        }
+      }
+    },
+    "irrigation_need": {
+      "accuracy": 0.7966666666666666,
+      "macro_precision": 0.7957207025790195,
+      "macro_recall": 0.7727996164952052,
+      "macro_f1": 0.7829151784978597,
+      "per_class": {
+        "0": {
+          "precision": 0.8567961165048543,
+          "recall": 0.7741228070175439,
+          "f1-score": 0.8133640552995391,
+          "support": 456.0
+        },
+        "1": {
+          "precision": 0.749003984063745,
+          "recall": 0.7014925373134329,
+          "f1-score": 0.7244701348747592,
+          "support": 268.0
+        },
+        "2": {
+          "precision": 0.7813620071684588,
+          "recall": 0.8427835051546392,
+          "f1-score": 0.8109113453192809,
+          "support": 776.0
+        }
+      }
+    }
+  },
+  "irrigation_type_classes": [
+    "canal",
+    "drip",
+    "rainfed",
+    "sprinkler"
+  ],
+  "irrigation_need_classes": [
+    "high",
+    "low",
+    "medium"
+  ],
+  "train_samples": 7000,
+  "test_samples": 1500,
+  "trained_at": "2026-04-15T04:15:02.546804",
+  "version": "1.0.0",
+  "edge_compressed": true
+}

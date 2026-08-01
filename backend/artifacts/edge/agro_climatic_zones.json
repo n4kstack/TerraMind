@@ -1,0 +1,72 @@
+{
+  "western himalayan": [
+    "jammu and kashmir",
+    "himachal pradesh",
+    "uttarakhand"
+  ],
+  "eastern himalayan": [
+    "assam",
+    "sikkim",
+    "meghalaya",
+    "arunachal pradesh",
+    "nagaland",
+    "manipur",
+    "mizoram",
+    "tripura"
+  ],
+  "upper gangetic plains": [
+    "uttar pradesh"
+  ],
+  "lower gangetic plains": [
+    "west bengal",
+    "bihar"
+  ],
+  "middle gangetic plains": [
+    "bihar",
+    "jharkhand"
+  ],
+  "trans gangetic plains": [
+    "punjab",
+    "haryana",
+    "delhi",
+    "chandigarh"
+  ],
+  "eastern plateau and hills": [
+    "chhattisgarh",
+    "jharkhand",
+    "odisha"
+  ],
+  "central plateau and hills": [
+    "madhya pradesh",
+    "rajasthan",
+    "uttar pradesh"
+  ],
+  "western plateau and hills": [
+    "maharashtra"
+  ],
+  "southern plateau and hills": [
+    "karnataka",
+    "andhra pradesh",
+    "telangana"
+  ],
+  "east coast": [
+    "tamil nadu",
+    "andhra pradesh",
+    "odisha"
+  ],
+  "west coast": [
+    "goa",
+    "kerala",
+    "karnataka"
+  ],
+  "gujarat plains": [
+    "gujarat"
+  ],
+  "western dry region": [
+    "rajasthan"
+  ],
+  "island region": [
+    "andaman and nicobar",
+    "lakshadweep"
+  ]
+}

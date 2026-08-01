@@ -1,0 +1,362 @@
+{
+  "systems": {
+    "central": {
+      "accuracy": 0.9991341991341991,
+      "macro_precision": 0.9995260663507108,
+      "macro_recall": 0.9990476190476191,
+      "macro_f1": 0.9992840014092671,
+      "top3_accuracy": 1.0,
+      "per_class": {
+        "0": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "1": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "2": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "3": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "4": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "5": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "6": {
+          "precision": 0.995260663507109,
+          "recall": 1.0,
+          "f1-score": 0.997624703087886,
+          "support": 210.0
+        },
+        "7": {
+          "precision": 1.0,
+          "recall": 0.9904761904761905,
+          "f1-score": 0.9952153110047847,
+          "support": 105.0
+        },
+        "8": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "9": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        }
+      },
+      "avg_latency_ms": 0.205,
+      "artifact_size_kb": 3322.6
+    },
+    "edge": {
+      "accuracy": 0.9991341991341991,
+      "macro_precision": 0.9995260663507108,
+      "macro_recall": 0.9990476190476191,
+      "macro_f1": 0.9992840014092671,
+      "top3_accuracy": 1.0,
+      "per_class": {
+        "0": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "1": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "2": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "3": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "4": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "5": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "6": {
+          "precision": 0.995260663507109,
+          "recall": 1.0,
+          "f1-score": 0.997624703087886,
+          "support": 210.0
+        },
+        "7": {
+          "precision": 1.0,
+          "recall": 0.9904761904761905,
+          "f1-score": 0.9952153110047847,
+          "support": 105.0
+        },
+        "8": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        },
+        "9": {
+          "precision": 1.0,
+          "recall": 1.0,
+          "f1-score": 1.0,
+          "support": 105.0
+        }
+      },
+      "avg_latency_ms": 0.127,
+      "artifact_size_kb": 3322.9,
+      "accuracy_gap_vs_central": 0.0
+    },
+    "local_only": {
+      "avg_accuracy": 1.0,
+      "avg_macro_f1": 1.0,
+      "n_states": 34,
+      "per_state": {
+        "andaman and nicobar": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 3500,
+          "n_classes": 4
+        },
+        "andhra pradesh": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "arunachal pradesh": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4200,
+          "n_classes": 5
+        },
+        "assam": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4200,
+          "n_classes": 5
+        },
+        "bihar": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "chandigarh": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 2800,
+          "n_classes": 3
+        },
+        "chhattisgarh": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "dadra and nagar haveli": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4200,
+          "n_classes": 5
+        },
+        "delhi": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4200,
+          "n_classes": 5
+        },
+        "goa": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 3500,
+          "n_classes": 4
+        },
+        "gujarat": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "haryana": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "himachal pradesh": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "jammu and kashmir": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "jharkhand": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "karnataka": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "kerala": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "madhya pradesh": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "maharashtra": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "manipur": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4200,
+          "n_classes": 5
+        },
+        "meghalaya": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4200,
+          "n_classes": 5
+        },
+        "mizoram": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "nagaland": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "odisha": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "puducherry": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 3500,
+          "n_classes": 4
+        },
+        "punjab": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "rajasthan": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "sikkim": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 3500,
+          "n_classes": 4
+        },
+        "tamil nadu": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "telangana": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4900,
+          "n_classes": 6
+        },
+        "tripura": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 4200,
+          "n_classes": 5
+        },
+        "uttar pradesh": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "uttarakhand": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        },
+        "west bengal": {
+          "accuracy": 1.0,
+          "macro_f1": 1.0,
+          "n_samples": 5600,
+          "n_classes": 7
+        }
+      },
+      "artifact_size_kb": 12737.7,
+      "accuracy_gap_vs_central": -0.09
+    }
+  },
+  "target_gap_pp": 5.0,
+  "edge_within_target": true
+}
