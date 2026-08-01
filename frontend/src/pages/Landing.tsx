@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, Leaf, MapPin, Layers, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, MapPin, Layers, ShieldCheck, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
-import { Badge } from '@/components/ui/Badge';
 import { NAV_ITEMS } from '@/components/layout/navigation';
 import { Reveal, RevealItem } from '@/components/ui/Reveal';
 import { CanopyBorder } from '@/features/landing/CanopyBorder';
@@ -75,13 +74,6 @@ function Hero() {
           seedling stands in before the first scroll. */}
       <div className="mx-auto max-w-7xl px-4 pb-28 pt-16 sm:px-6 sm:pt-24 lg:px-8 lg:pb-40">
         <Reveal stagger className="mx-auto max-w-3xl text-center">
-          <RevealItem className="flex justify-center">
-            <Badge variant="primary" className="px-3 py-1.5">
-              <Leaf aria-hidden="true" />
-              Smart Farming — Every Stage
-            </Badge>
-          </RevealItem>
-
           <RevealItem
             as="h1"
             className="mt-6 text-balance text-4xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-display"
