@@ -226,6 +226,34 @@
      it, so the same leaf only ever helps. Landing.tsx darkens light-mode body
      copy for exactly this reason, which is what lets this stay moderate instead
      of near-opaque. */
+  /*
+     A second scrim over the foot of the scene, faded in by scroll.
+
+     The base scrim above eases off at the bottom so the seedling and soil line
+     stay crisp on load — correct at rest, where no copy is down there. But the
+     trunk base is a solid bar at the bottom centre, and once the page moves,
+     copy scrolls straight over it: the modules intro measured 2.65:1 there.
+     Making the whole taper stronger would have dimmed the seedling in the one
+     moment it is the subject, so this is tied to scroll instead — absent at
+     rest, fully on a few percent in. */
+  .growth-scrim-foot {
+    background: linear-gradient(
+      to top,
+      hsl(var(--background) / 0.78) 0%,
+      hsl(var(--background) / 0.72) 45%,
+      transparent 100%
+    );
+  }
+
+  .dark .growth-scrim-foot {
+    background: linear-gradient(
+      to top,
+      hsl(var(--background) / 0.62) 0%,
+      hsl(var(--background) / 0.56) 45%,
+      transparent 100%
+    );
+  }
+
   .growth-scrim {
     background: linear-gradient(
       to bottom,

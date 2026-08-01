@@ -128,8 +128,14 @@ function Seedling({ progress }: { progress: MotionValue<number> }) {
   // Held at full strength through the opening stretch of scroll, then handed
   // over to the trunk thickening through the same space. The overlap is what
   // makes the hand-off read as one plant rather than two drawings swapped.
-  const opacity = useTransform(progress, [0, 0.2, 0.36], [1, 1, 0], { clamp: true });
-  const scale = useTransform(progress, [0, 0.36], [1, 1.3], { clamp: true });
+  // Hands over sooner than it looks like it should. The seedling only has a job
+  // at rest, and its leaves are the most opaque thing in the scene (0.78, so it
+  // reads as the subject on load). Held to 0.2 it was still ~90% visible at
+  // scrollY 300 — where the modules intro scrolls right over it, measuring
+  // 2.65:1. The trunk is ~20% drawn by the time this clears, which is tall
+  // enough for the handoff to still read as one plant.
+  const opacity = useTransform(progress, [0, 0.06, 0.24], [1, 1, 0], { clamp: true });
+  const scale = useTransform(progress, [0, 0.24], [1, 1.28], { clamp: true });
 
   return (
     <>
@@ -272,6 +278,8 @@ export function GrowthScene() {
    */
   const sceneOpacity = useTransform(progress, [0, 0.12, 0.5, 1], [1, 1, 0.7, 0.52]);
 
+  const footScrim = useTransform(progress, [0, 0.05], [0, 1], { clamp: true });
+
   const branches = compact ? BRANCHES.filter((b) => b.order === 0) : BRANCHES;
   // The inner half open first, so on phones — where the outer canopy is cropped
   // away anyway — those are exactly the ones worth keeping.
@@ -348,6 +356,13 @@ export function GrowthScene() {
           in both themes. Its own gradient already eases off over the bottom
           band, so the seedling loses almost nothing by this being on. */}
       <div className="growth-scrim absolute inset-0" />
+
+      {/* Foot scrim: off at rest so the seedling stays crisp, on as soon as
+          copy starts scrolling over the trunk base. */}
+      <motion.div
+        style={{ opacity: footScrim }}
+        className="growth-scrim-foot absolute inset-x-0 bottom-0 h-[32%]"
+      />
     </div>
   );
 }
