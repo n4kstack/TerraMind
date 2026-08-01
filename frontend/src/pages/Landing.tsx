@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MapPin, Layers, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowRight, MapPin, Layers, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { NAV_ITEMS } from '@/components/layout/navigation';
 import { Reveal, RevealItem } from '@/components/ui/Reveal';
@@ -216,7 +216,7 @@ function HowItWorks() {
   );
 }
 
-function TrustNote() {
+function SeasonNote() {
   return (
     <section>
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
@@ -225,15 +225,16 @@ function TrustNote() {
           className="flex flex-col items-start gap-5 rounded-xl border border-border bg-card p-6 sm:flex-row sm:p-8"
         >
           <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent">
-            <ShieldCheck className="size-6" aria-hidden="true" />
+            <Sparkles className="size-6" aria-hidden="true" />
           </span>
           <div className="space-y-2">
-            <h2 className="text-h3 text-foreground">Every prediction shows its confidence</h2>
+            <h2 className="text-h3 text-foreground">One field, the whole season</h2>
             <p className="text-base leading-relaxed text-muted-foreground">
-              These are statistical models, not certainties. TerraMind states how confident each
-              result is and cites its sources in the AI assistant, so you can judge how much weight
-              to give a recommendation. Treat all outputs as advisory and check them against local
-              agronomic guidance before committing seed, fertiliser or money.
+              Most tools stop at a single prediction. TerraMind stays with the crop: ensemble models
+              pick what to sow and forecast the yield, in-season guidance tunes fertiliser and flags
+              pest pressure, a single leaf photograph names a disease, and a knowledge-graph
+              assistant answers what to do next — with its sources. No account, no hardware, no
+              training.
             </p>
           </div>
         </Reveal>
@@ -248,7 +249,7 @@ export default function Landing() {
       <Hero />
       <Modules />
       <HowItWorks />
-      <TrustNote />
+      <SeasonNote />
     </>
   );
 }
