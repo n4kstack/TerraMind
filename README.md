@@ -499,7 +499,7 @@ If you intend this to be open source, add a `LICENSE` file (MIT and Apache-2.0 a
 **Nakul**
 
 - GitHub — [@n4kstack](https://github.com/n4kstack)
-- Hugging Face — [@nakul-tech](https://huggingface.co/nakul-tech)
+- LinkedIn — [Nakul Sharma](https://www.linkedin.com/in/nakul-sharma-21699a286)
 - Project — [github.com/n4kstack/TerraMind](https://github.com/n4kstack/TerraMind)
 
 ---
