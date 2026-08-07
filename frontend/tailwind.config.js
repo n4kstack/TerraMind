@@ -48,6 +48,13 @@ export default {
         // (inputs, comboboxes) and must therefore clear WCAG 1.4.11 at 3:1.
         'border-input': 'hsl(var(--border-input) / <alpha-value>)',
         ring: 'hsl(var(--ring) / <alpha-value>)',
+        // Hero-only, and deliberately NOT theme-varying. The scrubbed hero sits
+        // on photography whose luminance changes frame to frame, so its copy is
+        // fixed light-on-dark in both themes and its contrast is a property of
+        // the scrim we control rather than of whichever still is showing.
+        // Everything below the hero returns to the theme tokens above.
+        'hero-void': 'hsl(var(--hero-void) / <alpha-value>)',
+        'hero-accent': 'hsl(var(--hero-accent) / <alpha-value>)',
       },
       borderRadius: {
         sm: '8px',
@@ -91,30 +98,6 @@ export default {
           '0%, 100%': { transform: 'rotate(-1.5deg)' },
           '50%': { transform: 'rotate(1.5deg)' },
         },
-        /* Landing aurora. Percentage translations keep each blob's travel
-           proportional to its own size, so the field composes the same way at
-           every viewport width. */
-        'drift-a': {
-          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1)' },
-          '50%': { transform: 'translate3d(7%, 5%, 0) scale(1.16)' },
-        },
-        'drift-b': {
-          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(1.1)' },
-          '50%': { transform: 'translate3d(-6%, 8%, 0) scale(0.92)' },
-        },
-        'drift-c': {
-          '0%, 100%': { transform: 'translate3d(0, 0, 0) scale(0.94)' },
-          '50%': { transform: 'translate3d(8%, -6%, 0) scale(1.14)' },
-        },
-        'aurora-wash': {
-          '0%, 100%': { opacity: '0.35', transform: 'translate3d(-4%, 0, 0)' },
-          '50%': { opacity: '0.8', transform: 'translate3d(4%, 0, 0)' },
-        },
-        'mote-rise': {
-          '0%': { transform: 'translate3d(0, 0, 0)', opacity: '0' },
-          '15%, 70%': { opacity: '1' },
-          '100%': { transform: 'translate3d(18px, -160px, 0)', opacity: '0' },
-        },
       },
       animation: {
         'accordion-down': 'accordion-down 250ms cubic-bezier(0.22,1,0.36,1)',
@@ -122,13 +105,6 @@ export default {
         shimmer: 'shimmer 1.8s infinite',
         'pulse-ring': 'pulse-ring 2.4s cubic-bezier(0.22,1,0.36,1) infinite',
         sway: 'sway 6s ease-in-out infinite',
-        // Long and mutually prime enough that the field never visibly repeats.
-        'drift-a': 'drift-a 34s cubic-bezier(0.45,0,0.55,1) infinite',
-        'drift-b': 'drift-b 42s cubic-bezier(0.45,0,0.55,1) infinite',
-        'drift-c': 'drift-c 38s cubic-bezier(0.45,0,0.55,1) infinite',
-        'aurora-wash': 'aurora-wash 26s ease-in-out infinite',
-        // Duration and delay are overridden per mote inline.
-        'mote-rise': 'mote-rise 24s linear infinite',
       },
       transitionTimingFunction: {
         organic: 'cubic-bezier(0.22, 1, 0.36, 1)',
