@@ -4,6 +4,36 @@ This repo is prepared for a **single Hugging Face Space** deployment where:
 - FastAPI backend runs on port `7860`
 - Frontend is built inside Docker and served by FastAPI
 
+## ⚠️ Required: Space frontmatter on the deploy branch
+
+Hugging Face reads a Space's configuration from a YAML frontmatter block at the
+very top of `README.md`. **Without it the Space does not know it is a Docker
+Space** and the build fails or falls back to the wrong SDK.
+
+That block is deliberately **not** in the GitHub `README.md`: GitHub renders
+frontmatter as a raw key/value table above the title, which is noise for anyone
+reading the project page.
+
+So the deploy branch must carry it and `main` must not. Before pushing to the
+Space, prepend this to `README.md` on the deploy branch:
+
+```yaml
+---
+title: TerraMind
+emoji: "🌱"
+colorFrom: green
+colorTo: blue
+sdk: docker
+pinned: false
+---
+```
+
+Verify it survived the push — this must print the block, not the project title:
+
+```bash
+git show hf/main:README.md | head -8
+```
+
 ## 1. Before Deploying
 
 1. Push this repository to GitHub.

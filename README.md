@@ -1,12 +1,3 @@
----
-title: TerraMind
-emoji: "🌱"
-colorFrom: green
-colorTo: blue
-sdk: docker
-pinned: false
----
-
 # TerraMind — Smarter Farming, Every Stage
 
 An end-to-end agriculture intelligence platform that advises Indian farmers across the **entire crop lifecycle** — what to plant, how to manage it while it grows, what went wrong when leaves start spotting, and what the research literature says about it.
@@ -430,6 +421,8 @@ Deployed as a **single Docker container** on Hugging Face Spaces — FastAPI ser
 5. Push — the Space builds from the [Dockerfile](Dockerfile) automatically
 
 Full walkthrough: [README_HUGGINGFACE.md](README_HUGGINGFACE.md).
+
+> **The Space needs a YAML frontmatter block that this README deliberately omits.** Hugging Face reads `sdk: docker` and the Space title from frontmatter at the top of `README.md`; GitHub renders that same block as a raw table, so it lives on the deploy branch only. Copy it from [README_HUGGINGFACE.md](README_HUGGINGFACE.md#-required-space-frontmatter-on-the-deploy-branch) before pushing to the Space.
 
 > **`backend/artifacts/` must be present in the deployed image.** Without it the model registry raises `FileNotFoundError` and `/predict` silently degrades to a fallback that never sees state or district — every district then returns the identical crop and confidence.
 
