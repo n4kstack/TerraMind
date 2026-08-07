@@ -22,8 +22,23 @@ function bandFor(pct: number): Band {
   return 'low';
 }
 
+/**
+ * The three bands must be tellable apart at a glance, which is why `high` reads
+ * from --secondary rather than --primary.
+ *
+ * Primary is the brand's harvest ochre and accent is a gold; side by side they
+ * measured dE 21.9 in light mode, under the 25 this project treats as clearly
+ * distinct. A confidence meter whose "high" and "moderate" look the same defeats
+ * the entire point of showing confidence — this component exists because a
+ * model output presented as a bare certainty is a product-level failure, and a
+ * band nobody can read is the same failure wearing a progress bar.
+ *
+ * --secondary is green and stays green for this. The icon and the label carry
+ * the meaning independently anyway (never hue alone — MASTER.md 1.4), but the
+ * colour should not actively mislead.
+ */
 const BAND_META: Record<Band, { label: string; bar: string; text: string; Icon: typeof Info }> = {
-  high: { label: 'High confidence', bar: 'bg-primary', text: 'text-primary', Icon: CheckCircle2 },
+  high: { label: 'High confidence', bar: 'bg-secondary', text: 'text-secondary', Icon: CheckCircle2 },
   moderate: { label: 'Moderate confidence', bar: 'bg-accent', text: 'text-accent', Icon: AlertTriangle },
   low: { label: 'Low confidence', bar: 'bg-destructive', text: 'text-destructive', Icon: Info },
 };
