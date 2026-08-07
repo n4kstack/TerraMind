@@ -14,53 +14,117 @@
 
 @layer base {
   :root {
-    --background: 138.5 76.5% 96.7%;
-    --foreground: 143.8 61.2% 20.2%;
+    /* Hue 29 is not a taste decision: it is the mean of the bottom third of the
+       closing frames of the hero footage, the same measurement --field-warm
+       records. The palette is built outward from the field it sits on. */
+    --background: 36 56% 97%;
+    --foreground: 24 44% 16%;
     --card: 0 0% 100%;
-    --card-foreground: 143.8 61.2% 20.2%;
-    --primary: 142.4 71.8% 29.2%;
+    --card-foreground: 24 44% 16%;
+    --primary: 29 80% 31%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 142.1 70.6% 45.3%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --accent: 35.5 91.7% 32.9%;
+    /* Green survives here and ONLY here. --secondary is the health signal —
+       success badges and high-confidence meters — because the three confidence
+       levels have to stay tellable apart and warm-on-warm cannot do that. See
+       the note above .card-gradient's status pairing and MASTER.md 1.4. */
+    --secondary: 145 62% 26%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 45 94% 29%;
     --accent-foreground: 0 0% 100%;
-    --muted: 186.7 24.3% 92.7%;
-    /* Darkened from the source palette's #64748B, which measured 4.12:1 on
-       --muted and failed AA. #5A6B80 clears 4.5:1 on all three surfaces. */
-    --muted-foreground: 213.2 17.4% 42.7%;
-    --border: 141 78.9% 85.1%;
-    --border-input: 145 14.4% 49%;
-    --destructive: 0 72.2% 50.6%;
+    --muted: 36 32% 92%;
+    /* Warmed with the rest of the palette; still darkened relative to a stock
+       slate grey for the same reason as before — it must clear 4.5:1 on
+       --muted, which is the tightest of its three surfaces. */
+    --muted-foreground: 26 14% 38%;
+    --border: 34 54% 85%;
+    --border-input: 28 22% 45%;
+    /* Pushed to 354 rather than a pure 0. Against a primary at hue 29 a
+       neutral red drifts toward orange at small sizes; the touch of magenta
+       keeps error states unmistakably not-brand. */
+    --destructive: 354 76% 44%;
     --destructive-foreground: 0 0% 100%;
-    --ring: 142.4 71.8% 29.2%;
+    --ring: 29 80% 31%;
 
-    --shadow-sm: 0 1px 2px rgba(8, 19, 13, 0.04);
-    --shadow-md: 0 4px 16px rgba(8, 19, 13, 0.06);
-    --shadow-lg: 0 12px 32px rgba(8, 19, 13, 0.08);
+    /* Shadow tint follows the palette. A green-black shadow under warm cards
+       reads as a colour cast rather than as depth. */
+    --shadow-sm: 0 1px 2px rgba(38, 24, 10, 0.05);
+    --shadow-md: 0 4px 16px rgba(38, 24, 10, 0.07);
+    --shadow-lg: 0 12px 32px rgba(38, 24, 10, 0.09);
+
+    /*
+       Hero-only tokens, declared once and NOT overridden in .dark.
+
+       The scrubbed hero is the one surface on the site whose background is
+       photography rather than a colour we chose. Its luminance changes from
+       frame to frame, so no theme-following token can be guaranteed to clear AA
+       against it: light mode's dark-green-on-near-white is unreadable over a
+       sunlit field, and scrimming hard enough to fix that would wash the
+       footage out to the point of being pointless.
+
+       So the hero is fixed light-on-dark in both themes. Contrast then depends
+       only on --hero-void and the scrim alphas below, both of which are ours.
+       The seam is handled by .hero-frame-fade, which dissolves the bottom of
+       the footage into whichever --background is active. */
+    --hero-void: 28 40% 4.5%;
+    /* Lighter than dark mode's --primary, and it has to be. This sits on
+       scrimmed footage rather than on a flat surface: measured, the copy band
+       composites to roughly 0.12 relative luminance, which leaves a coloured
+       accent needing about 0.72 of its own to clear 4.5:1. A mid-tone gold
+       lands near 4.2:1 and fails; this is lifted until it passes. */
+    --hero-accent: 44 92% 76%;
+
+    /*
+       The colour of the field itself, measured off the footage rather than
+       chosen: the mean of the bottom third of the closing frames, where the
+       harvest fills the frame, reads hsl(29 51% 26%) and its shadows
+       hsl(27 67% 18%). Warm brown. The page underneath the hero used to tint
+       green, which put a hue break across the seam no amount of luminance
+       matching could hide — the footage says harvest and the page said leaf.
+
+       Re-measure if the clip changes; there is a sampler in
+       frontend/scripts/extract-hero-frames.py that does the same arithmetic. */
+    --field-warm: 29 51% 26%;
+
+    /*
+       The single colour the hero and the page must BOTH reach at the join.
+
+       This is what removes the seam. .hero-frame-fade ends on it and
+       .field-transition begins on it, so the hero's last row and the page's
+       first row are the same value and there is nothing to see. Anything that
+       changes here changes both sides at once, which is the point of it being
+       one token rather than two hand-matched gradients. */
+    --seam-tone: color-mix(in oklab, hsl(var(--background)) 88%, hsl(var(--field-warm)) 12%);
 
     color-scheme: light;
   }
 
   .dark {
-    /* Deep forest rather than pure black: #000 on OLED smears during scroll
-       and reads as harsh next to saturated greens. */
-    --background: 147.3 40.7% 5.3%;
-    --foreground: 137.1 38.9% 92.9%;
-    --card: 150 34.8% 9%;
-    --card-foreground: 137.1 38.9% 92.9%;
-    --primary: 141.9 69.2% 58%;
-    --primary-foreground: 144.9 80.4% 10%;
-    --secondary: 142.1 70.6% 45.3%;
-    --secondary-foreground: 144.9 80.4% 10%;
-    --accent: 43.3 96.4% 56.3%;
-    --accent-foreground: 42.9 100% 5.5%;
-    --muted: 146.7 29% 12.2%;
-    --muted-foreground: 147.5 14% 66.3%;
-    --border: 146.7 30.3% 17.5%;
-    --border-input: 145 24.5% 38.4%;
-    --destructive: 0 90.6% 70.8%;
-    --destructive-foreground: 0 67.7% 6.1%;
-    --ring: 141.9 69.2% 58%;
+    /* Deep tilled earth rather than pure black: #000 on OLED smears during
+       scroll, and a warm near-black is what the footage fades into. */
+    --background: 28 28% 6%;
+    --foreground: 36 30% 92%;
+    --card: 28 24% 10%;
+    --card-foreground: 36 30% 92%;
+    --primary: 32 90% 61%;
+    --primary-foreground: 28 70% 9%;
+    /* The health signal on dark. Kept green for the same reason as light. */
+    --secondary: 142 62% 52%;
+    --secondary-foreground: 145 60% 8%;
+    --accent: 48 94% 58%;
+    --accent-foreground: 48 90% 7%;
+    --muted: 28 20% 14%;
+    --muted-foreground: 34 16% 68%;
+    --border: 28 22% 20%;
+    --border-input: 30 26% 44%;
+    --destructive: 354 84% 68%;
+    --destructive-foreground: 0 60% 7%;
+    --ring: 32 90% 61%;
+
+    /* Dark carries far more of the field tone than light does. Against a 5.3%
+       background the warm mix still lands near-black, so it can be strong
+       enough to actually read as warmth; the same ratio over light mode's
+       near-white background would look like a stain. */
+    --seam-tone: color-mix(in oklab, hsl(var(--background)) 72%, hsl(var(--field-warm)) 28%);
 
     color-scheme: dark;
   }
@@ -178,201 +242,220 @@
     @apply rounded-lg border border-border bg-card text-card-foreground shadow-sm;
   }
 
-  /* ---------------------------------------------- landing page backdrop --- */
+  /* --------------------------------------------- gradient surfaces --- */
+  /*
+     Why these exist at all: in dark mode --card sits at 9% lightness against a
+     background at 5.3%. Under four points apart, which is not enough separation
+     for a card to read as a raised surface — the module grid looked like text
+     floating on a flat black field with hairlines around it. Rather than lift
+     --card globally (which would change every panel in the app, including the
+     dense result tables where flat is correct), the landing page's cards get a
+     gradient that is brighter where light would fall and settles back to the
+     token colour elsewhere.
+
+     Light and dark need opposite mechanisms, not different values. Dark lifts
+     with a white overlay; light cannot, because --card is already pure white
+     there, so it tints downward with the brand green instead.
+
+     The coloured layers use --field-warm, not --primary: these cards sit inside
+     the warm pool .field-transition pours out of the hero, and a green sheen
+     inside it read as a different light source.
+
+     Ratios below are sampled off the rendered page — the painted pixel behind
+     the text, not the token the text was supposed to sit on — against
+     --muted-foreground, the lightest-weight copy these cards carry:
+
+                       behind text    worst point on card
+         light            5.64:1            5.35:1
+         dark             7.26:1            5.71:1
+
+     The worst point is the top-left corner, where the sheen peaks and no text
+     ever sits; it is recorded because a gradient's contrast floor should be
+     known rather than assumed. Both improved when the palette turned warm —
+     these gradients are --field-warm over a warm --card now, rather than a warm
+     wash fighting a green one. Light is still the tighter of the two: push the
+     alphas past these and re-measure before assuming it clears AA. */
+  .card-gradient {
+    background-color: hsl(var(--card));
+    background-image:
+      linear-gradient(148deg, hsl(var(--field-warm) / 0.09) 0%, transparent 52%),
+      radial-gradient(120% 100% at 100% 0%, hsl(var(--field-warm) / 0.08) 0%, transparent 62%);
+  }
+
+  .dark .card-gradient {
+    background-image:
+      /* The sheen. Strongest at the top-left corner and gone by halfway, which
+         is what reads as a surface catching light rather than as a tinted box. */
+      linear-gradient(
+        148deg,
+        hsl(0 0% 100% / 0.06) 0%,
+        hsl(0 0% 100% / 0.022) 38%,
+        transparent 68%
+      ),
+      radial-gradient(125% 95% at 0% 0%, hsl(var(--field-warm) / 0.3) 0%, transparent 58%);
+  }
+
+  /* Hairline along the top edge only. A full border says "box"; a single lit
+     edge says the surface has thickness. Inset shadow rather than a border so
+     it costs no layout and cannot shift the grid. */
+  .card-gradient {
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.5),
+      var(--shadow-sm);
+  }
+
+  .dark .card-gradient {
+    box-shadow:
+      inset 0 1px 0 hsl(0 0% 100% / 0.06),
+      var(--shadow-sm);
+  }
+
+  /* Hover: the accent radial swells from the corner the sheen starts at, so the
+     card looks like it turns toward the light rather than simply changing
+     colour. Paired with the -translate-y already on these links. */
+  .card-gradient-hover:hover {
+    background-image:
+      linear-gradient(148deg, hsl(var(--field-warm) / 0.15) 0%, transparent 58%),
+      radial-gradient(130% 110% at 100% 0%, hsl(var(--field-warm) / 0.12) 0%, transparent 66%);
+  }
+
+  .dark .card-gradient-hover:hover {
+    background-image:
+      linear-gradient(
+        148deg,
+        hsl(0 0% 100% / 0.1) 0%,
+        hsl(0 0% 100% / 0.035) 38%,
+        transparent 68%
+      ),
+      radial-gradient(140% 110% at 0% 0%, hsl(var(--field-warm) / 0.5) 0%, transparent 62%);
+  }
+
+  /*
+     Carries the field's warmth out of the hero and lets it decay into the page.
+
+     Replaces an earlier `.section-glow`, which was wrong twice over. It was
+     green, against footage that is warm brown, so the join had a hue break
+     across it that no amount of luminance matching could hide. And it was a
+     radial that began at full strength on the section's first pixel row —
+     measured, the hero's last row was rgb(8,19,13) and the page's first was
+     rgb(11,27,18), a step change with nothing between them. That step was the
+     hard line across the page.
+
+     This starts at exactly --seam-tone, the same value .hero-frame-fade ends
+     on, so the two are continuous by construction rather than by tuning. It
+     then decays over 60% of the section — several hundred pixels — which is
+     long enough to read as the light falling off rather than as a band.
+
+     The radial on top is what stops it looking like a flat wash: warmth pools
+     toward the middle, where the footage above it was brightest.
+
+     Note where that radial is centred. `at 50% 45%` with a 45% vertical radius
+     puts the join exactly on its outer edge, so it contributes nothing at all
+     to the first row and only fades up below it. Centred at the top instead —
+     which is the obvious way to write it, and how the first attempt read — it
+     peaks on row zero and reintroduces the very step this class exists to
+     remove. Measured, that version still left a 12-point jump across the join
+     after the linear halves had been matched perfectly. */
+  .field-transition {
+    background-image:
+      radial-gradient(75% 45% at 50% 45%, hsl(var(--field-warm) / 0.09) 0%, transparent 100%),
+      linear-gradient(to bottom, var(--seam-tone) 0%, transparent 60%);
+  }
+
+  .dark .field-transition {
+    background-image:
+      radial-gradient(75% 45% at 50% 45%, hsl(var(--field-warm) / 0.2) 0%, transparent 100%),
+      linear-gradient(to bottom, var(--seam-tone) 0%, transparent 60%);
+  }
+
+  /* ------------------------------------------------- scrubbed hero --- */
   /* Written here rather than as Tailwind arbitrary values because these are
      multi-stop gradients over token colours: in class form they become
      unreadable strings where a single mistyped underscore fails silently. */
 
-  .aurora-blob {
-    @apply rounded-full;
-    /* Blur is the whole effect, so it cannot be dropped on mobile — but it is
-       halved there, where the layer is also ~40% smaller. */
-    filter: blur(72px);
-    /* These layers only ever translate and scale. Promoting them up front
-       stops the compositor re-rasterising a 56rem blur mid-animation. */
-    will-change: transform;
-  }
-
-  @media (min-width: 640px) {
-    .aurora-blob {
-      filter: blur(116px);
-    }
-  }
-
-  .aurora-wash {
-    background: linear-gradient(
-      118deg,
-      transparent 14%,
-      hsl(var(--primary) / 0.1) 40%,
-      hsl(var(--secondary) / 0.08) 58%,
-      transparent 84%
-    );
-    will-change: transform, opacity;
-  }
-
-  /* ------------------------------------------------- hero leaf canopy --- */
-
   /*
-     One leaf detaches every 20s and falls. Transform and opacity only, so this
-     stays on the compositor and can never shift layout.
+     Legibility wash over the frame sequence.
 
-     Distances are in the SVG's own user units, not pixels: the canopy is
-     width-driven, so the browser scales the whole fall with the viewport and
-     this is responsive without a single breakpoint. `--tm-fall` is set from the
-     one constant in canopy.ts.
+     Sized from the footage, not guessed. The extraction script reports the 95th
+     percentile luminance of the band the copy occupies; the alphas below are
+     set so that white text clears 4.5:1 against a frame that bright. The
+     radial and the linear multiply, so the figure that matters is the combined
+     alpha where the copy sits:
 
-     transform-box/origin matter — an SVG element's default transform origin is
-     the viewBox origin, so without fill-box the leaf would swing around the
-     top-left corner of the drawing instead of spinning on itself. */
-  .tm-leaf {
-    transform-box: fill-box;
-    transform-origin: 50% 50%;
-  }
+         1 - (1 - radial) x (1 - linear)
 
-  @keyframes tm-leaf-fall {
-    0% {
-      transform: translate(0px, 0px) rotate(0deg);
-      opacity: 1;
-    }
-    18% {
-      transform: translate(20px, calc(var(--tm-fall) * 0.09)) rotate(46deg);
-      opacity: 1;
-    }
-    38% {
-      transform: translate(-24px, calc(var(--tm-fall) * 0.26)) rotate(-32deg);
-      opacity: 1;
-    }
-    58% {
-      transform: translate(22px, calc(var(--tm-fall) * 0.48)) rotate(54deg);
-      opacity: 0.9;
-    }
-    78% {
-      transform: translate(-18px, calc(var(--tm-fall) * 0.72)) rotate(-22deg);
-      opacity: 0.55;
-    }
-    100% {
-      transform: translate(10px, var(--tm-fall)) rotate(34deg);
-      opacity: 0;
-    }
-  }
+     At the centre that is 1 - 0.72 x 0.72 = 0.48. The wheat clip measures 0.445
+     peak luminance in that band and needs 0.36, so this carries about a third
+     more than the minimum — margin for a regrade of the footage, before the
+     text drop-shadows are counted at all.
 
-  /* The vertical stops accelerate (0.09 / 0.26 / 0.48 / 0.72 / 1) so the leaf
-     gains speed like it is falling; the easing only smooths the sway between
-     them. Putting the acceleration in a timing function instead makes the sway
-     lurch. */
-  /* 3.8s, not 4.4s, and the reason is the cadence rather than taste. A leaf is
-     released every 5s and only one may be airborne at a time, so the fall plus
-     the state cleanup that follows animationend has to fit inside the interval.
-     At 4.4s it did not: measured, alternate ticks landed while a leaf was still
-     descending and were skipped, so leaves actually fell every ~10s. */
-  .tm-leaf--falling {
-    animation: tm-leaf-fall 3.8s cubic-bezier(0.42, 0, 0.58, 1) forwards;
-  }
-
-  @keyframes tm-leaf-enter {
-    from {
-      opacity: 0;
-      transform: scale(0.55) rotate(-14deg);
-    }
-    to {
-      opacity: 1;
-      transform: scale(1) rotate(0deg);
-    }
-  }
-
-  /* Fades in the moment its predecessor detaches, so the count never dips. */
-  .tm-leaf--enter {
-    animation: tm-leaf-enter 1.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+     It was 0.65 while the number was a guess, which is a third of the picture
+     thrown away for contrast nobody needed. The top stop stays heavier because
+     the navbar's own text sits in that band before it picks up a background. */
+  .hero-frame-scrim {
+    background:
+      radial-gradient(74% 54% at 50% 50%, hsl(var(--hero-void) / 0.28) 0%, transparent 100%),
+      linear-gradient(
+        to bottom,
+        hsl(var(--hero-void) / 0.62) 0%,
+        hsl(var(--hero-void) / 0.28) 22%,
+        hsl(var(--hero-void) / 0.28) 72%,
+        hsl(var(--hero-void) / 0.46) 100%
+      );
   }
 
   /*
-     Local scrim behind the hero copy only.
+     The navbar while it floats over the hero footage.
 
-     This is what pays for the leaves being vibrant. The canopy paints above the
-     growth scene's full-viewport scrim, so the leaves are undimmed; rather than
-     wash the whole leaf canvas to protect text, the protection is confined to
-     the block that actually needs it. Light gets more than dark for the usual
-     reason — mid-grey copy on a near-white surface leaves a green leaf sitting
-     between the two. */
-  .hero-copy-scrim {
-    background: radial-gradient(
-      58% 46% at 50% 40%,
-      hsl(var(--background) / 0.9) 0%,
-      hsl(var(--background) / 0.68) 52%,
-      transparent 100%
-    );
-  }
+     This overrides the theme variables on the <header> rather than recolouring
+     each control, and that is the whole point: the bar's wordmark, links,
+     theme toggle and menu button already resolve their colours from
+     --foreground, --primary, --muted-foreground and --muted, so redefining
+     those four here recolours all of them at once and cannot drift out of sync
+     with the components. Scoped to the header, so nothing below inherits it.
 
-  .dark .hero-copy-scrim {
-    background: radial-gradient(
-      58% 46% at 50% 40%,
-      hsl(var(--background) / 0.8) 0%,
-      hsl(var(--background) / 0.54) 52%,
-      transparent 100%
-    );
+     Values are fixed rather than theme-following for the same reason
+     --hero-void is: what sits behind this bar is footage, not a surface. */
+  .nav-over-hero {
+    --foreground: 0 0% 100%;
+    /* Dimmed rather than white so inactive links still read as secondary. At
+       0.88 lightness on the hero scrim this clears AA comfortably. */
+    --muted-foreground: 0 0% 88%;
+    /* Deliberately --hero-accent's value, not --primary's. The bar is over the
+       same scrimmed footage the hero copy is, so it needs the accent that was
+       measured against that footage rather than the one tuned for a flat card.
+       Written out rather than referenced because this block is a fixed set of
+       overrides — pulling in var(--hero-accent) here would read as though it
+       could vary, and it must not. */
+    --primary: 44 92% 76%;
+    /* Hover tile. Dark, not light: a white tile on dark footage reads as a
+       highlight lamp rather than a hover state. Warm, to match the soil it
+       sits on — this was left green when the palette turned, which put the
+       one green pixel left on the page in the wordmark. */
+    --muted: 28 25% 14%;
+    --ring: 0 0% 100%;
   }
 
   /*
-     Protects the copy the mature canopy spreads behind.
+     Dissolves the foot of the footage into the page.
 
-     This was a centred ellipse, which was the wrong shape: the three-step
-     section runs its text from 8% to 92% of the viewport width, so most of it
-     sat outside the protected area entirely and measured 3.2:1. Full width and
-     a vertical profile instead — strongest across the band copy actually
-     occupies, easing off at the very top and bottom so the crown of the tree
-     and the soil line stay crisp. */
-  /* Light needs a markedly stronger scrim than dark, and the reason is
-     structural, not stylistic: light mode puts mid-grey body copy on a
-     near-white surface, so a green leaf lands BETWEEN the two and closes the
-     gap from both sides. Dark mode's copy is far brighter than anything behind
-     it, so the same leaf only ever helps. Landing.tsx darkens light-mode body
-     copy for exactly this reason, which is what lets this stay moderate instead
-     of near-opaque. */
-  /*
-     A second scrim over the foot of the scene, faded in by scroll.
+     Without it the hero ends on a hard horizontal edge against whatever section
+     scrolls up beneath it — in light mode a near-black band meeting a near-white
+     one, which is the most conspicuous seam the page could have. This is the one
+     hero layer that DOES follow the theme, because its whole job is to arrive at
+     --background.
 
-     The base scrim above eases off at the bottom so the seedling and soil line
-     stay crisp on load — correct at rest, where no copy is down there. But the
-     trunk base is a solid bar at the bottom centre, and once the page moves,
-     copy scrolls straight over it: the modules intro measured 2.65:1 there.
-     Making the whole taper stronger would have dimmed the seedling in the one
-     moment it is the subject, so this is tied to scroll instead — absent at
-     rest, fully on a few percent in. */
-  .growth-scrim-foot {
-    background: linear-gradient(
-      to top,
-      hsl(var(--background) / 0.78) 0%,
-      hsl(var(--background) / 0.72) 45%,
-      transparent 100%
-    );
-  }
-
-  .dark .growth-scrim-foot {
-    background: linear-gradient(
-      to top,
-      hsl(var(--background) / 0.62) 0%,
-      hsl(var(--background) / 0.56) 45%,
-      transparent 100%
-    );
-  }
-
-  .growth-scrim {
+     It can afford to be this deep because HeroSequence fades the whole layer in
+     over the closing sixth of the pin. Painted constantly it would haze the
+     bottom half of every frame; arriving only at the handoff, the depth is what
+     makes the edge genuinely disappear rather than merely soften. */
+  .hero-frame-fade {
     background: linear-gradient(
       to bottom,
-      hsl(var(--background) / 0.22) 0%,
-      hsl(var(--background) / 0.56) 14%,
-      hsl(var(--background) / 0.58) 88%,
-      hsl(var(--background) / 0.32) 100%
-    );
-  }
-
-  .dark .growth-scrim {
-    background: linear-gradient(
-      to bottom,
-      hsl(var(--background) / 0.14) 0%,
-      hsl(var(--background) / 0.54) 14%,
-      hsl(var(--background) / 0.56) 88%,
-      hsl(var(--background) / 0.2) 100%
+      transparent 36%,
+      color-mix(in oklab, transparent 45%, var(--seam-tone)) 68%,
+      color-mix(in oklab, transparent 12%, var(--seam-tone)) 86%,
+      var(--seam-tone) 100%
     );
   }
 }
