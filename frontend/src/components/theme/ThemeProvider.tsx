@@ -53,7 +53,7 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     root.classList.toggle('dark', resolvedTheme === 'dark');
     // Keeps the mobile browser chrome in step with the app surface.
     const meta = document.querySelector('meta[name="theme-color"]');
-    if (meta) meta.setAttribute('content', resolvedTheme === 'dark' ? '#08130D' : '#F0FDF4');
+    if (meta) meta.setAttribute('content', resolvedTheme === 'dark' ? '#140F0B' : '#FCF8F3');
   }, [resolvedTheme]);
 
   const setTheme = useCallback((next: Theme) => {
