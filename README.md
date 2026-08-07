@@ -7,259 +7,514 @@ sdk: docker
 pinned: false
 ---
 
-# TerraMind: Smarter Farming, Every Stage
-## Hybrid Edge-Enabled Pre-Sowing Advisor
+# TerraMind — Smarter Farming, Every Stage
 
-A production-grade end-to-end agriculture intelligence platform for the **pre-sowing stage** featuring centralized ML models, edge-deployable compressed inference, bounded district-level adaptation, and a comprehensive benchmarking framework.
+An end-to-end agriculture intelligence platform that advises Indian farmers across the **entire crop lifecycle** — what to plant, how to manage it while it grows, what went wrong when leaves start spotting, and what the research literature says about it.
 
----
+Four ML-backed modules sit behind one FastAPI service and one React SPA, served together from a single container.
 
-## Architecture
+**[▶ Live Demo — Hugging Face Spaces](https://huggingface.co/spaces/nakul-tech/TerraMind)**
 
-```
-USER INPUT (N, P, K, pH, temp, humidity, rainfall, soil, state, district, season)
-│
-├─→ Model 1: Crop Recommender (RF/GB Classifier)
-│     └─→ [Edge mode] Bounded Local Adaptation Layer
-│           └─→ Top-3 crops + confidence
-│
-├─→ Model 2: Yield Predictor (GB Regressor + historical features)
-│     └─→ Expected yield + confidence band
-│
-├─→ Model 3: Agri-Condition Advisor (3 sub-models)
-│     ├─→ Sunlight hours (regression)
-│     ├─→ Irrigation type (classification) ←─ District infra prior
-│     └─→ Irrigation need (classification)
-│
-└─→ Novelty Layer: District Intelligence Engine
-      ├─→ Crop area share
-      ├─→ Yield trend analysis
-      ├─→ Competing crops
-      ├─→ Best historical season
-      ├─→ 10-year trajectory
-      └─→ Irrigation infrastructure summary
-```
-
-### Deployment Modes
-
-| Mode | Description | Use Case |
-|------|-------------|----------|
-| **Central** | Full-power global model, no compression | Gold standard reference |
-| **Edge** | Compressed model + local adaptation + cached priors | Low-latency offline-first production |
-| **Local-Only** | Per-state partition trained models | Benchmarking only |
+> The Space runs on CPU Basic and sleeps when idle. The first request after a cold start can take 30–60 seconds while the model artifacts load.
 
 ---
 
-## Why This Is Edge-Enabled (Not Buzzword-Only)
+## Table of Contents
 
-1. **Central model** is trained on full data → serves as the gold standard
-2. **Edge model** is a compressed version with reduced trees → smaller artifact, faster startup
-3. **Local adaptation** applies bounded post-prediction adjustments using district priors — NOT full retraining
-4. **All edge caches** (crop frequencies, irrigation infra, yield trajectories) are stored locally as JSON files
-5. **No central server hit** needed for standard edge inference
-6. **Sync workflow** supports pulling updated central artifacts when connectivity is available
-7. **Federated updates** are architecturally supported but not forced
+- [Key Features](#key-features)
+- [Tech Stack](#tech-stack)
+- [Prerequisites](#prerequisites)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Running the Project](#running-the-project)
+- [Usage Examples](#usage-examples)
+- [API Endpoints](#api-endpoints)
+- [Project Structure](#project-structure)
+- [Retraining the Models](#retraining-the-models)
+- [Deployment](#deployment)
+- [Known Issues & Limitations](#known-issues--limitations)
+- [Roadmap](#roadmap)
+- [Contributing](#contributing)
+- [License](#license)
+- [Author](#author)
+- [Acknowledgements](#acknowledgements)
 
 ---
 
-## Datasets
+## Key Features
 
-All datasets must be placed in `./dataset before sowing/`:
+### 🌱 Pre-Sowing Advisor
+Recommends what to plant before the season starts, from soil and climate inputs.
 
-| File | Purpose |
-|------|---------|
-| `crop_dataset_rebuilt.csv` | Model 1: Crop Recommender |
-| `irrigation_prediction.csv` | Model 3: Agri-Condition Advisor |
-| `India Agriculture Crop Production.csv` | Model 2 + Intelligence |
-| `crop_production.csv.xlsx` | Model 2 (secondary yield source) |
-| `ICRISAT-District Level Data.csv` | District Intelligence |
-| `ICRISAT-District Level Data Source.csv` | Irrigation Infrastructure |
-| `ICRISAT-District Level Data Irrigation.csv` | Crop Irrigated Area |
-| `main merge...xls` | Optional supplementary (graceful skip) |
+- **Crop Recommender** — Random Forest / Gradient Boosting classifier returning top-3 crops with confidence
+- **Yield Predictor** — Gradient Boosting regressor with historical district features and a confidence band
+- **Agri-Condition Advisor** — three sub-models for sunlight hours, irrigation type, and irrigation need
+- **District Intelligence Engine** — crop area share, yield trend, competing crops, best historical season, 10-year trajectory, and irrigation infrastructure, all read from cached district priors
+
+### 🌿 Growth Stage Monitor
+Advises mid-season, once the crop is in the ground: pest pressure level, recommended fertilizer, dosage, application window, and expected yield after treatment.
+
+### 🔬 Post-Symptom Diagnosis
+Upload a leaf photo and get a disease classification with a downloadable PDF report. *(Requires externally-trained CNN weights — see [Known Issues](#known-issues--limitations).)*
+
+### 📚 AugNosis — Graph RAG + Document Assistant
+Grounded question answering over agricultural literature, combining:
+
+- A **NetworkX knowledge graph** of crops, diseases, and treatments
+- **FAISS** semantic retrieval over indexed PDFs
+- Live adapters for **AGRIS (FAO)**, **AGRICOLA (USDA NAL)**, CABI, PubAg, OpenAlex, EuropePMC, FAOSTAT, CGIAR, AgEcon, and ASABE
+- Retrieval guardrails and a refusal path when sources don't support an answer
+
+### ⚡ Hybrid Edge Architecture
+Three deployment modes from one codebase:
+
+| Mode | What it does | Use case |
+|------|--------------|----------|
+| **Central** | Full-power global models, no compression | Gold-standard reference |
+| **Edge** | Compressed models + bounded local adaptation + cached JSON priors | Low-latency, offline-first |
+| **Local-Only** | Per-state partition models | Benchmarking only |
+
+Edge inference needs no central server. Local adaptation applies **bounded** post-prediction adjustments (max ±15% per crop) from district priors — not a full retrain — and every adjustment is logged into the response.
+
+---
+
+## Tech Stack
+
+**Backend**
+| Tool | Role |
+|------|------|
+| FastAPI + Uvicorn | API framework and ASGI server |
+| Pydantic v2 | Request/response schemas and validation |
+| SlowAPI | Per-endpoint rate limiting |
+| scikit-learn `1.8.0` | Classical ML models (**pin is mandatory** — see Known Issues) |
+| NumPy 2.x / SciPy / pandas | Numerics and data handling |
+| joblib | Model serialization |
+
+**ML & AI**
+| Tool | Role |
+|------|------|
+| PyTorch + torchvision | Disease-detection CNN, federated simulation |
+| sentence-transformers | `all-MiniLM-L6-v2` embeddings |
+| FAISS (`faiss-cpu`) | Vector similarity search |
+| NetworkX | Agricultural knowledge graph |
+| PyMuPDF | PDF text extraction |
+| OpenRouter | Hosted LLM inference for report generation |
+
+**Frontend**
+| Tool | Role |
+|------|------|
+| React 18 + TypeScript | UI |
+| Vite 8 | Build tool and dev server |
+| Tailwind CSS 3 | Styling |
+| Radix UI | Accessible primitives (dialog, popover, tabs, tooltip) |
+| Framer Motion | Animation |
+| Recharts | Yield trajectory charts |
+| React Router 7 | Routing |
+| jsPDF + react-markdown | Report export and rendering |
+
+**Infrastructure** — Docker (multi-stage: `node:20-alpine` → `python:3.11-slim`), Hugging Face Spaces, Git LFS for model binaries.
+
+---
+
+## Prerequisites
+
+| Requirement | Version | Notes |
+|-------------|---------|-------|
+| **Python** | 3.11 | The Docker image pins `python:3.11-slim` |
+| **Node.js** | 20+ | For the frontend build |
+| **Git LFS** | any | **Required.** See the warning below |
+| **RAM** | 4 GB+ | Model artifacts total ~390 MB on disk |
+| **Disk** | ~1.5 GB | Repo + dependencies |
+
+> ### ⚠️ Git LFS is not optional
+>
+> Every model file (`.pkl`, `.joblib`, `.pth`, `.bin`, images) is stored in Git LFS. Cloning **without** LFS installed gives you ~180 small text pointer files instead of real models, and the app fails at startup with deserialization errors.
+>
+> ```bash
+> git lfs install     # run once per machine, BEFORE cloning
+> ```
+>
+> Already cloned without it? Recover with `git lfs install && git lfs pull`.
 
 ---
 
 ## Installation
 
-### Backend
 ```bash
-cd backend
-pip install -r requirements.txt
+# 1. Install Git LFS first (see warning above)
+git lfs install
+
+# 2. Clone
+git clone https://github.com/n4kstack/TerraMind.git
+cd TerraMind
+
+# 3. Verify LFS actually pulled the models — this must print ~5.5M, not ~130 bytes
+ls -lh backend/artifacts/central/yield_predictor/model.joblib
+
+# 4. Backend dependencies
+pip install -r backend/requirements.txt
+
+# 5. Frontend dependencies
+cd frontend && npm install && cd ..
 ```
 
-### Frontend
-```bash
-cd frontend
-npm install
-```
+**No training is required to run the project.** All model artifacts are committed, so the app works immediately after install.
 
 ---
 
-## Usage
+## Configuration
 
-### 1. Train All Models
+Copy the template and edit as needed:
+
 ```bash
-# From project root
-python -m backend.models.train_crop_recommender
-python -m backend.models.train_yield_predictor
-python -m backend.models.train_agri_advisor
-
-# Or use the script:
-scripts/train_all.bat       # Windows
-bash scripts/train_all.sh   # Linux/Mac
+cp .env.example .env                    # backend
+cp frontend/.env.example frontend/.env  # frontend
 ```
 
-### 2. Build Edge Assets
-```bash
-python -m backend.models.compress_edge_model
+Every variable has a working default — **the only one you may need to set is the LLM key**, and only for the AugNosis / chatbot modules. The advisor, monitor, and diagnosis modules run fully offline.
 
-# Or:
-scripts/build_edge_assets.bat
+### Core variables
+
+| Variable | Default | Purpose |
+|----------|---------|---------|
+| `OPENROUTER_API_KEY` | *(none)* | **Secret.** Required for AugNosis and the chatbot |
+| `OPENROUTER_MODEL_NAME` | `nvidia/nemotron-3-ultra-550b-a55b:free` | Primary LLM |
+| `GRAPH_RAG_FALLBACK_MODEL` | `nvidia/nemotron-3-super-120b-a12b:free` | Used when the primary is rate-limited |
+| `GRAPH_RAG_MODEL_CANDIDATES` | `google/gemma-4-31b-it:free` | Ordered fallback list (comma-separated) |
+| `GRAPH_RAG_LLM_MAX_TOKENS` | `4000` | Must cover reasoning **plus** the full JSON report, or output truncates |
+| `TERRAMIND_HOST` / `TERRAMIND_PORT` | `0.0.0.0` / `8000` | Bind address (Docker uses `7860`) |
+| `TERRAMIND_EMBEDDING_MODEL` | `all-MiniLM-L6-v2` | Sentence-transformer for embeddings |
+| `TERRAMIND_TOP_K` | `5` | Retrieved chunks per query |
+| `TERRAMIND_SIM_THRESHOLD` | `0.35` | Minimum similarity to accept a chunk |
+| `VITE_API_BASE_URL` | *(empty)* | Frontend only. **Leave empty in production** — empty means same-origin |
+
+Rate limits (`TERRAMIND_*_RATE_LIMIT`), chunking, and diagnosis tunables are all listed in [.env.example](.env.example).
+
+> **Never commit a real `.env`.** [.gitignore](.gitignore) and [.dockerignore](.dockerignore) both exclude it. Setting `VITE_API_BASE_URL` in production is a common mistake — it bakes an absolute URL into the bundle, so browsers call *that* host instead of the server they loaded the page from.
+
+---
+
+## Running the Project
+
+### Option A — Docker (matches production exactly)
+
+```bash
+docker build -t terramind .
+docker run -p 7860:7860 --env-file .env terramind
 ```
 
-### 3. Run Backend
+Open **http://localhost:7860** — the container serves both the API and the UI.
+
+### Option B — Local development (hot reload)
+
+Two terminals:
+
 ```bash
+# Terminal 1 — backend on :8000
 python -m uvicorn backend.app.main:app --host 0.0.0.0 --port 8000 --reload
-
-# Or:
-scripts/run_backend.bat
 ```
 
-### 4. Run Frontend
 ```bash
-cd frontend
-npm run dev
-
-# Or:
-scripts/run_frontend.bat
+# Terminal 2 — frontend on :3000
+cd frontend && npm run dev
 ```
 
-### 5. Run Benchmark
+Open **http://localhost:3000**. Set `VITE_API_BASE_URL=http://localhost:8000` in `frontend/.env` so the SPA finds the API across ports.
+
+Windows helper scripts: `scripts/run_backend.bat`, `scripts/run_frontend.bat`.
+
+### Verify it's up
+
 ```bash
-python -m backend.models.train_local_only_model
-python -m backend.services.benchmark_service
-
-# Or:
-scripts/benchmark_all.bat
+curl http://localhost:8000/health
+curl http://localhost:8000/api/v1/graph-rag/health
 ```
+
+Interactive API docs: **http://localhost:8000/docs**
+
+---
+
+## Usage Examples
+
+### Pre-sowing crop recommendation
+
+```bash
+curl -X POST http://localhost:8000/api/v1/advisor/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "N": 90, "P": 42, "K": 43, "ph": 6.5,
+    "temperature": 25.0, "humidity": 80.0, "rainfall": 200.0,
+    "soil_type": "loamy", "state": "Punjab", "district": "ludhiana",
+    "season": "kharif", "area": 2.5, "model_mode": "standard"
+  }'
+```
+
+Returns top-3 crops with confidence, predicted yield with a band, irrigation and sunlight guidance, and the district intelligence block.
+
+`model_mode` accepts `standard` or `federated`. `state`/`district` are accepted as aliases for `state_name`/`district_name`, and `area` is optional.
+
+> Don't confuse this with the legacy `POST /predict` route, which takes a different `mode` field (`central` / `edge` / `local_only`). The v1 endpoint ignores unknown keys silently, so a misplaced `mode` fails quietly rather than erroring.
+
+### Growth-stage advisory
+
+```bash
+curl -X POST http://localhost:8000/api/v1/monitor/predict \
+  -H "Content-Type: application/json" \
+  -d '{
+    "temperature": 30, "humidity": 65, "moisture": 40,
+    "soil_type": "Loamy", "crop_type": "Wheat",
+    "N": 80, "P": 40, "K": 40, "ph": 6.8, "rainfall": 120
+  }'
+```
+
+### Disease diagnosis from a leaf photo
+
+```bash
+curl -X POST "http://localhost:8000/api/v1/diagnosis/predict?top_k=3" \
+  -F "file=@leaf.jpg"
+```
+
+### Grounded literature query
+
+```bash
+curl -X POST http://localhost:8000/api/v1/graph-rag/query \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How do I manage rice blast in Punjab?", "use_llm": true}'
+```
+
+### Frontend routes
+
+| Route | Page |
+|-------|------|
+| `/` | Landing |
+| `/advisor` | Pre-Sowing Advisor |
+| `/monitor` | Growth Stage Monitor |
+| `/diagnosis` | Post-Symptom Diagnosis |
+| `/augnosis` | Graph RAG + document assistant |
 
 ---
 
 ## API Endpoints
 
+Interactive docs at `/docs` (Swagger) and `/redoc`.
+
+### Unified v1 API
+
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `POST` | `/predict` | Full prediction pipeline |
-| `POST` | `/train/all` | Train all models (background) |
-| `POST` | `/benchmark/edge-assets` | Build edge artifacts |
-| `POST` | `/benchmark/all` | Run benchmark comparison |
-| `GET` | `/benchmark/results` | View benchmark results |
-| `GET` | `/health` | Health check |
-| `GET` | `/metadata` | Model versions & metrics |
+| `POST` | `/api/v1/advisor/predict` | Full pre-sowing pipeline |
+| `POST` | `/api/v1/advisor/compare` | Compare central vs edge vs local output |
+| `POST` | `/api/v1/advisor/train/all` | Retrain all pre-sowing models |
+| `GET` | `/api/v1/advisor/metadata` | Model versions and metrics |
+| `POST` | `/api/v1/monitor/predict` | Growth-stage advisory |
+| `POST` | `/api/v1/diagnosis/predict` | Leaf image → disease |
+| `GET` | `/api/v1/diagnosis/report/{report_id}` | Fetch a generated report |
+| `POST` | `/api/v1/diagnosis/report/{report_id}/download` | Download report as PDF |
+| `POST` | `/api/v1/chatbot/ask` | Ask the document assistant |
+| `GET` | `/api/v1/chatbot/status` | Index status |
+| `POST` | `/api/v1/chatbot/rebuild` | Rebuild the FAISS index |
+| `POST` | `/api/v1/graph-rag/query` | Grounded knowledge-graph query |
+| `GET` | `/api/v1/graph-rag/health` | LLM + knowledge-graph health |
+
+### Platform & edge-management routes
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/health` | Service health check |
+| `GET` | `/api/states` | List all states |
+| `GET` | `/api/districts/{state}` | List districts for a state |
+| `POST` | `/predict` | Edge/central prediction (legacy surface) |
+| `GET` | `/metadata` | Artifact versions |
 | `GET` | `/sync/status` | Edge sync status |
-| `POST` | `/sync/pull` | Pull central → edge |
-| `GET` | `/api/states` | List states |
-| `GET` | `/api/districts/{state}` | List districts |
-
-### Sample Request
-```json
-{
-  "N": 90, "P": 42, "K": 43, "ph": 6.5,
-  "temperature": 25.0, "humidity": 80.0, "rainfall": 200.0,
-  "soil_type": "loamy", "state": "Punjab", "district": "ludhiana",
-  "season": "kharif", "area": 2.5, "mode": "edge"
-}
-```
-
----
-
-## How Local Adaptation Works
-
-1. Global crop recommender runs first → produces base probabilities
-2. District-level priors are loaded from cached JSON files:
-   - Crop frequency in district (area share)
-   - Season suitability match
-   - Yield history depth
-3. Bounded probability adjustments are applied (max ±15% per crop)
-4. Probabilities are re-normalised and crops re-ranked
-5. All adjustments are logged and returned in the response
-
----
-
-## Benchmark Target
-
-| Metric | Target |
-|--------|--------|
-| Edge vs Central accuracy gap | ≤ 5 percentage points |
-| Edge latency | < Central latency |
-| Edge artifact size | < Central artifact size |
+| `POST` | `/sync/pull` | Pull central artifacts → edge |
+| `POST` | `/train/all` | Retrain everything (background) |
+| `POST` | `/train/{crop-recommender\|yield-predictor\|agri-advisor}` | Retrain one model |
+| `POST` | `/benchmark/all` | Run the benchmark suite |
+| `GET` | `/benchmark/results` | Read benchmark results |
+| `POST` | `/benchmark/edge-assets` | Build edge artifacts and caches |
 
 ---
 
 ## Project Structure
 
 ```
+TerraMind/
 ├── backend/
-│   ├── api/            # FastAPI route handlers
-│   ├── app/            # FastAPI application entry
-│   ├── artifacts/      # Trained model storage
-│   │   ├── central/    # Full baseline models
-│   │   ├── edge/       # Compressed + cached priors
-│   │   └── local/      # Per-state benchmark models
-│   ├── core/           # Config, logging
-│   ├── models/         # Training scripts
-│   ├── schemas/        # Pydantic schemas
-│   ├── services/       # Business logic
-│   └── utils/          # Data loading, preprocessing
-├── frontend/           # React + Vite + Tailwind
-├── scripts/            # Automation scripts
-├── dataset before sowing/  # Input datasets
-└── README.md
+│   ├── api/                  # Platform routes: predict, train, sync, benchmark
+│   ├── app/
+│   │   ├── api/v1/           # Unified v1 API (advisor, monitor, diagnosis,
+│   │   │                     #   chatbot, graph_rag)
+│   │   ├── chatbot/          # RAG: ingestion, retrievers, router, storage
+│   │   ├── core/             # Config, rate limiting, runtime config
+│   │   ├── schemas/          # Pydantic models
+│   │   ├── services/         # Business logic
+│   │   └── main.py           # FastAPI entry point + SPA mounting
+│   ├── artifacts/            # Trained models (Git LFS)
+│   │   ├── central/          # Full-power baseline
+│   │   ├── edge/             # Compressed models + district JSON priors
+│   │   └── local/            # Per-state benchmark models
+│   ├── core/                 # Paths, hyperparameters, logging
+│   ├── models/               # Training + edge-compression scripts
+│   ├── services/             # Inference pipeline, district intelligence, sync
+│   └── utils/                # Feature engineering, caches, normalizers
+├── ml/
+│   ├── pre_sowing_advisor/   # Crop rec, yield, irrigation/sunlight
+│   ├── growth_stage_monitor/ # Pest, fertilizer, dosage models
+│   └── post_symptom_diagnosis/  # Disease CNN inference wrappers
+├── graph_rag/
+│   ├── retrieval/adapters/   # AGRIS, AGRICOLA, CABI, PubAg, OpenAlex, …
+│   ├── graph_builder.py      # Knowledge graph construction
+│   └── graph_rag_pipeline.py # Orchestration
+├── federated/                # Flower-based 28-state FL simulation
+├── meta_learner/             # RF + federated ensemble fusion
+├── frontend/
+│   ├── src/
+│   │   ├── components/       # UI primitives, layout, theme
+│   │   ├── features/         # advisor, diagnosis, landing
+│   │   ├── pages/            # Route components
+│   │   └── lib/api/          # Typed API client
+│   └── vite.config.js
+├── scripts/                  # Train / benchmark / run helpers (.sh + .bat)
+├── Dockerfile                # Multi-stage: node build → python runtime
+└── .env.example
 ```
 
 ---
 
-## Future Roadmap
+## Retraining the Models
 
-- [ ] Federated learning aggregation (architecture hooks ready)
-- [ ] Geospatial GEE enrichment (satellite imagery features)
-- [ ] CNN disease detection module (during-growth stage)
-- [ ] Market price prediction layer
-- [ ] Fertilizer recommendation engine
-- [ ] Multilingual support (Hindi, regional languages)
-- [ ] ONNX export for mobile inference
-- [ ] Real-time weather API integration
+**Skip this unless you're changing the models** — trained artifacts ship with the repo.
+
+Datasets are **not** included (they're gitignored due to size). To retrain, place the CSVs where the config expects them:
+
+- `dataset before sowing/` — see [backend/core/config.py](backend/core/config.py#L14)
+- `dataset during growth/` — see [ml/growth_stage_monitor/config.py](ml/growth_stage_monitor/config.py#L10)
+
+| File | Feeds |
+|------|-------|
+| `crop_dataset_rebuilt.csv` | Crop Recommender |
+| `irrigation_prediction.csv` | Agri-Condition Advisor |
+| `India Agriculture Crop Production.csv` | Yield Predictor + District Intelligence |
+| `ICRISAT-District Level Data*.csv` | District Intelligence + Irrigation Infrastructure |
+| `fertilizer_giant_training_dataset.csv` | Growth Stage Monitor |
+
+```bash
+# Train
+python -m backend.models.train_crop_recommender
+python -m backend.models.train_yield_predictor
+python -m backend.models.train_agri_advisor
+#   or: scripts/train_all.sh  /  scripts/train_all.bat
+
+# Build compressed edge artifacts + district caches
+python -m backend.models.compress_edge_model
+#   or: scripts/build_edge_assets.sh
+
+# Benchmark central vs edge vs local
+python -m backend.models.train_local_only_model
+python -m backend.services.benchmark_service
+#   or: scripts/benchmark_all.sh
+```
+
+**Benchmark targets:** edge-vs-central accuracy gap ≤ 5 pp, edge latency below central, edge artifact smaller than central.
 
 ---
 
-## Deploy On Render
+## Deployment
 
-This repository includes a Render Blueprint config at [render.yaml](render.yaml).
+Deployed as a **single Docker container** on Hugging Face Spaces — FastAPI serves the API and the built SPA from one origin on port `7860`.
 
-### 1. Push latest code to GitHub
-- Ensure your latest branch includes `render.yaml`.
+1. Create a Space with SDK `Docker`, hardware `CPU Basic`
+2. Connect this repository
+3. Add `OPENROUTER_API_KEY` under **Secrets**
+4. Copy the rest from [HUGGINGFACE_VARIABLES.env.example](HUGGINGFACE_VARIABLES.env.example) into **Variables**
+5. Push — the Space builds from the [Dockerfile](Dockerfile) automatically
 
-### 2. Create Blueprint in Render
-- In Render dashboard: `New` -> `Blueprint`.
-- Connect your GitHub repo and select this project.
-- Render will detect `render.yaml` and create:
-  - `terramind-backend` (FastAPI web service)
-  - `terramind-frontend` (static site)
+Full walkthrough: [README_HUGGINGFACE.md](README_HUGGINGFACE.md).
 
-### 3. Set required secret
-- In backend service env vars, set:
-  - `OPENROUTER_API_KEY` = your OpenRouter key
+> **`backend/artifacts/` must be present in the deployed image.** Without it the model registry raises `FileNotFoundError` and `/predict` silently degrades to a fallback that never sees state or district — every district then returns the identical crop and confidence.
 
-### 4. Update frontend API URL (if service name differs)
-- `render.yaml` frontend build uses:
-  - `VITE_API_BASE_URL=https://terramind-backend.onrender.com`
-- If your backend URL is different, update this value in `render.yaml` and redeploy.
+---
 
-### 5. Verify deployment
-- Backend health: `https://<your-backend>.onrender.com/health`
-- Graph RAG health: `https://<your-backend>.onrender.com/api/v1/graph-rag/health`
-- Frontend should load and call backend routes under `/api/v1/*`.
+## Known Issues & Limitations
 
-### Notes
-- Render free services may sleep when idle; first request can be slow.
-- If your chatbot index relies on local PDFs, ensure those files are in repo (or mount persistent storage and rebuild index).
+- **Disease diagnosis needs external weights.** The CNN artifacts are not in this repo. Place them at `ml/post_symptom_diagnosis/saved_models/trained_artifacts_fast/` (see that folder's README). Until then, `/api/v1/diagnosis/predict` returns an error.
+
+- **Dependency versions are load-bearing.** `scikit-learn==1.8.0` and `numpy>=2.0,<3` are pinned exactly because the committed models embed the library versions that serialized them. Installing a different scikit-learn breaks unpickling with `No module named '_loss'`, and every advisor request fails. Don't relax these pins without retraining.
+
+- **~66 MB of duplicated artifacts.** 18 files under `backend/artifacts/central/` are byte-identical to their `edge/` counterparts, including a 47.5 MB model — `compress_edge_model.py` only genuinely compresses the crop recommender and copies the rest verbatim. Both trees are read at runtime, so neither can simply be deleted.
+
+- **Unreachable code paths.** `backend/app/api/router.py` and `routers/graph_rag_router.py` are never mounted — `main.py` includes the v1 routers directly. Likewise `federated/` and `meta_learner/` are not imported by the API; they exist as a standalone simulation.
+
+- **Free-tier LLM rate limits.** AugNosis depends on free OpenRouter models. Under load the primary model rate-limits and the pipeline falls back down `GRAPH_RAG_MODEL_CANDIDATES`; if all are exhausted, responses degrade to retrieval-only.
+
+- **Large clone.** ~356 MB via Git LFS. Shallow-clone if you only need the source: `git clone --depth 1`.
+
+- **Cold starts.** CPU Basic Spaces sleep when idle; the first request loads ~390 MB of artifacts.
+
+- **No automated test suite.** There is no pytest suite or CI pipeline yet.
+
+---
+
+## Roadmap
+
+- [ ] Automated test suite + CI
+- [ ] Federated learning aggregation wired into the live API
+- [ ] Geospatial GEE enrichment (satellite imagery features)
+- [ ] Market price prediction layer
+- [ ] Multilingual support (Hindi and regional languages)
+- [ ] ONNX export for on-device mobile inference
+- [ ] Real-time weather API integration
+- [ ] Deduplicate the central/edge artifact overlap
+
+---
+
+## Contributing
+
+Contributions are welcome.
+
+1. Fork the repo and create a branch — `git checkout -b feature/your-feature`
+2. **Run `git lfs install` before cloning**, or model files will be pointers
+3. Keep changes focused; match the surrounding code style
+4. Never commit `.env` files, datasets, or regenerated artifacts — check `git status` against [.gitignore](.gitignore)
+5. Write commit messages in the existing convention: `type(scope): summary` (e.g. `fix(yield): enrich district history before scaling`)
+6. Explain *why* in the commit body, not just *what*
+7. Open a pull request against `main`
+
+If you're adding a new retrieval adapter, follow the interface in [graph_rag/retrieval/adapters/base.py](graph_rag/retrieval/adapters/base.py).
+
+---
+
+## License
+
+**No license file is currently included in this repository.**
+
+Under default copyright, that means all rights are reserved and others have no legal permission to use, modify, or redistribute this work — even though the source is publicly visible.
+
+If you intend this to be open source, add a `LICENSE` file (MIT and Apache-2.0 are common choices for ML projects) and update this section.
+
+---
+
+## Author
+
+**Nakul**
+
+- GitHub — [@n4kstack](https://github.com/n4kstack)
+- Hugging Face — [@nakul-tech](https://huggingface.co/nakul-tech)
+- Project — [github.com/n4kstack/TerraMind](https://github.com/n4kstack/TerraMind)
+
+---
+
+## Acknowledgements
+
+**Data sources**
+- [ICRISAT](http://data.icrisat.org/dld/) — district-level agricultural data for India
+- India Agriculture Crop Production statistics — district-wise yield history
+- [FAO AGRIS](https://agris.fao.org/) — Open Data Set catalogue and bibliographic records
+- [USDA NAL AGRICOLA](https://agricola.nal.usda.gov/) and [PubAg](https://pubag.nal.usda.gov/)
+- [CABI Digital Library](https://www.cabidigitallibrary.org/), [OpenAlex](https://openalex.org/), [Europe PMC](https://europepmc.org/), [FAOSTAT](https://www.fao.org/faostat/), [CGIAR](https://www.cgiar.org/), AgEcon Search, ASABE
+- [HWSD](https://www.iiasa.ac.at/) — Harmonized World Soil Database
+
+**Libraries & platforms**
+- [FastAPI](https://fastapi.tiangolo.com/), [scikit-learn](https://scikit-learn.org/), [PyTorch](https://pytorch.org/), [FAISS](https://faiss.ai/), [sentence-transformers](https://sbert.net/), [NetworkX](https://networkx.org/)
+- [React](https://react.dev/), [Vite](https://vite.dev/), [Tailwind CSS](https://tailwindcss.com/), [Radix UI](https://www.radix-ui.com/)
+- [Hugging Face Spaces](https://huggingface.co/spaces) for hosting, [OpenRouter](https://openrouter.ai/) for LLM inference
