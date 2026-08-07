@@ -4,7 +4,7 @@ An end-to-end agriculture intelligence platform that advises Indian farmers acro
 
 Four ML-backed modules sit behind one FastAPI service and one React SPA, served together from a single container.
 
-**[▶ Live Demo — Hugging Face Spaces](https://huggingface.co/spaces/nakul-tech/TerraMind)**
+**[▶ Live Demo — try TerraMind now](https://n4ksworks-terramind.hf.space/)**
 
 > The Space runs on CPU Basic and sleeps when idle. The first request after a cold start can take 30–60 seconds while the model artifacts load.
 
