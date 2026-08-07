@@ -4,7 +4,6 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Leaf } from 'lucide-react';
 import { Navbar } from './Navbar';
 import { MobileTabBar } from './MobileTabBar';
-import { LandingBackdrop } from '@/features/landing/LandingBackdrop';
 import { pageVariants } from '@/lib/motion';
 import { cn } from '@/lib/utils';
 
@@ -66,10 +65,10 @@ export function Layout({ children }: { children: ReactNode }) {
 
   return (
     <div className="flex min-h-dvh flex-col">
-      {/* Decorative, fixed, pointer-events-none — never intercepts input. The
-          landing page gets the richer animated field and growth scene instead;
-          rendering both would double the blur overdraw for no visual gain. */}
-      {isLanding ? <LandingBackdrop /> : <div className="biophilic-field" aria-hidden="true" />}
+      {/* Decorative, fixed, pointer-events-none — never intercepts input.
+          Skipped on the landing page, whose hero owns the full viewport and
+          paints footage over every pixel this would occupy. */}
+      {!isLanding && <div className="biophilic-field" aria-hidden="true" />}
 
       <ScrollToTop />
       <Navbar />
