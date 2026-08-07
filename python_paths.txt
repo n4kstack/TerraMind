@@ -1,3 +1,0 @@
-﻿C:\Users\pc\AppData\Local\Microsoft\WindowsApps\python.exe
-C:\Users\pc\AppData\Local\Microsoft\WindowsApps\Microsoft.DesktopAppInstaller_8wekyb3d8bbwe\python.exe
-C:\Users\pc\AppData\Local\Microsoft\WindowsApps\PythonSoftwareFoundation.Python.3.13_qbz5n2kfra8p0\python.exe

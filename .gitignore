@@ -63,3 +63,27 @@ trained_artifacts_fast/
 graph_rag/cache/
 .cache/
 TerraMind_Datasets/
+
+# Debug residue. error_full.txt is a traceback dump that leaks absolute
+# C:\Users\... paths; the python_path*.txt files are dumps of the local PATH
+# and interpreter locations. Nothing here describes the project.
+error_full.txt
+python_path_check.txt
+python_paths.txt
+test.txt
+
+# Local scratch scripts. These are `python <file>.py` smoke tests with
+# sys.path.insert hacks, not a pytest suite - they stay on disk, out of git.
+test_pred.py
+test_integration.py
+backend/test_orchestrator.py
+
+# Generated evaluation plots, rebuilt wholesale by
+# ml/growth_stage_monitor/visualize.py. The directory also shadows the
+# sibling evaluation.py module, so keeping it out of git avoids the collision.
+ml/growth_stage_monitor/evaluation/
+
+# Federated simulation outputs, rewritten by
+# federated/run_simulation.py::save_federated_artifacts on every run.
+federated/results/*
+!federated/results/.gitkeep
