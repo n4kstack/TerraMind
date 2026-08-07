@@ -42,14 +42,30 @@ export function Navbar() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
 
+  // True while the bar is floating over the landing page's footage hero, which
+  // is the one place it has no theme-coloured surface behind it. Detected from
+  // a marker the hero puts at the foot of its scroll track rather than from a
+  // route check or shared state: every other route simply has no such element,
+  // so they get the normal bar without knowing this exists.
+  const [overHero, setOverHero] = useState(false);
+
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
+    const onScroll = () => {
+      setScrolled(window.scrollY > 8);
+      const marker = document.getElementById('hero-end');
+      // BAR_HEIGHT, not 0: the switch has to happen as the hero's last pixel
+      // passes under the bar, not as it passes the top of the viewport.
+      setOverHero(!!marker && marker.getBoundingClientRect().top > 64);
+    };
     onScroll();
     // passive: this listener never calls preventDefault, and marking it so
     // keeps scrolling off the main thread's critical path.
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
-  }, []);
+    // Re-read on navigation: the marker appears and disappears with the route,
+    // and without this the bar would keep the previous page's treatment until
+    // the user happened to scroll.
+  }, [location.pathname]);
 
   // Close the mobile sheet on navigation, otherwise it covers the new page.
   useEffect(() => setMobileOpen(false), [location.pathname]);
@@ -75,9 +91,19 @@ export function Navbar() {
       <header
         className={cn(
           'sticky top-0 z-50 w-full transition-[background-color,border-color,box-shadow] duration-300',
-          scrolled
-            ? 'border-b border-border bg-background/85 shadow-sm backdrop-blur-xl'
-            : 'border-b border-transparent bg-background/60 backdrop-blur-sm',
+          // Order matters: floating over the hero wins over `scrolled`, because
+          // the hero pin lasts well over two screens and `scrolled` flips true
+          // after 8px. Without this the bar would spend the whole pinned act as
+          // a solid light slab across the top of the footage.
+          overHero
+            ? // No background and no backdrop-blur: the hero's own scrim
+              // already sits at ~0.63 alpha across this band, which is enough
+              // for white nav text, and a blur here would make the compositor
+              // re-snapshot the scrubbing canvas on every scroll frame.
+              'nav-over-hero border-b border-transparent bg-transparent'
+            : scrolled
+              ? 'border-b border-border bg-background/85 shadow-sm backdrop-blur-xl'
+              : 'border-b border-transparent bg-background/60 backdrop-blur-sm',
         )}
       >
         <nav className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
