@@ -21,63 +21,77 @@ Every pair below was validated with a WCAG contrast script; ratios are recorded 
 
 | Role | Hex | Notes |
 |------|-----|-------|
-| `--background` | `#F0FDF4` | App canvas, faint green tint |
-| `--foreground` | `#14532D` | Deep forest — body text |
+| `--background` | `#FCF8F3` | Warm ivory — app canvas |
+| `--foreground` | `#3B2517` | Dark umber — body text |
 | `--card` | `#FFFFFF` | Clean white surfaces |
-| `--card-foreground` | `#14532D` | |
-| `--primary` | `#15803D` | Earth green — primary actions |
-| `--primary-foreground` | `#FFFFFF` | |
-| `--secondary` | `#22C55E` | Fresh green — success/positive |
-| `--secondary-foreground` | `#0F172A` | |
-| `--accent` | `#A16207` | Harvest gold — CTA, highlights |
-| `--accent-foreground` | `#FFFFFF` | DB pre-adjusted from `#CA8A04` for WCAG |
-| `--muted` | `#E8F0F1` | Chips, inactive surfaces |
-| `--muted-foreground` | `#5A6B80` | **Corrected** from `#64748B` (failed 4.12:1 on `--muted`) |
-| `--border` | `#BBF7D0` | Decorative dividers only |
-| `--border-input` | `#6B8F7A` | **Added.** Controls where the border is the only affordance |
-| `--destructive` | `#DC2626` | |
-| `--destructive-foreground` | `#FFFFFF` | |
-| `--ring` | `#15803D` | Focus rings |
+| `--card-foreground` | `#3B2517` |  |
+| `--primary` | `#8E4D10` | Field ochre (hue 29 = measured footage) — primary actions |
+| `--primary-foreground` | `#FFFFFF` |  |
+| `--secondary` | `#196B3B` | Crop green — **health signal only** (success, high confidence) |
+| `--secondary-foreground` | `#FFFFFF` |  |
+| `--accent` | `#8F6D04` | Deep gold — caution/monitor |
+| `--accent-foreground` | `#FFFFFF` |  |
+| `--muted` | `#F1ECE4` | Chips, inactive surfaces |
+| `--muted-foreground` | `#6E5F53` | Warmed; still darkened to clear 4.5:1 on `--muted` |
+| `--border` | `#EDDCC4` | Decorative dividers only |
+| `--border-input` | `#8C715A` | Controls where the border is the only affordance |
+| `--destructive` | `#C51B2C` | Hue 354, not 0 — keeps error clear of an orange primary |
+| `--destructive-foreground` | `#FFFFFF` |  |
+| `--ring` | `#8E4D10` | Focus rings |
 
 ### 1.2 Dark
 
-Derived (the source palette is light-only), then validated. Deep forest rather than pure black — pure black on OLED causes smear during scroll and reads as harsh.
+Derived from the light palette, then validated. Deep tilled earth rather than pure black — pure black on OLED causes smear during scroll and reads as harsh.
 
 | Role | Hex | Notes |
 |------|-----|-------|
-| `--background` | `#08130D` | |
-| `--foreground` | `#E6F4EA` | |
-| `--card` | `#0F1F17` | |
-| `--card-foreground` | `#E6F4EA` | |
-| `--primary` | `#4ADE80` | Lightened — dark surfaces need lighter accents |
-| `--primary-foreground` | `#052E16` | |
-| `--secondary` | `#22C55E` | |
-| `--secondary-foreground` | `#052E16` | |
-| `--accent` | `#FBBF24` | |
-| `--accent-foreground` | `#1C1400` | |
-| `--muted` | `#16281E` | |
-| `--muted-foreground` | `#9DB5A8` | |
-| `--border` | `#1F3A2B` | Decorative only |
-| `--border-input` | `#4A7A5E` | |
-| `--destructive` | `#F87171` | |
-| `--destructive-foreground` | `#1A0505` | |
-| `--ring` | `#4ADE80` | |
+| `--background` | `#140F0B` | Tilled earth, not pure black |
+| `--foreground` | `#F1ECE4` | Dark umber — body text |
+| `--card` | `#201913` | Clean white surfaces |
+| `--card-foreground` | `#F1ECE4` |  |
+| `--primary` | `#F5A242` | Lightened — dark surfaces need lighter accents |
+| `--primary-foreground` | `#271607` |  |
+| `--secondary` | `#39D070` | **Health signal only.** Kept green so confidence bands stay distinct |
+| `--secondary-foreground` | `#082112` |  |
+| `--accent` | `#F9D02F` | Deep gold — caution/monitor |
+| `--accent-foreground` | `#221B02` |  |
+| `--muted` | `#2B231D` | Chips, inactive surfaces |
+| `--muted-foreground` | `#BAAFA0` | Warmed; still darkened to clear 4.5:1 on `--muted` |
+| `--border` | `#3E3228` | Decorative dividers only |
+| `--border-input` | `#8D7053` | Controls where the border is the only affordance |
+| `--destructive` | `#F26977` | Hue 354, not 0 — keeps error clear of an orange primary |
+| `--destructive-foreground` | `#1D0707` |  |
+| `--ring` | `#F5A242` | Focus rings |
 
 ### 1.3 Verified contrast ratios
 
+Regenerate with `python frontend/scripts/check-contrast.py`; it reads `index.css` directly, so these cannot drift from the shipped tokens without the check failing.
+
 | Pair | Light | Dark | Requirement |
 |------|-------|------|-------------|
-| body on background | 8.70:1 | 16.67:1 | 4.5 |
-| body on card | 9.11:1 | 15.05:1 | 4.5 |
-| muted-fg on background | 5.21:1 | 8.66:1 | 4.5 |
-| muted-fg on card | 5.46:1 | 7.82:1 | 4.5 |
-| muted-fg on muted | 4.72:1 | 7.08:1 | 4.5 |
-| primary-fg on primary | 5.02:1 | 8.55:1 | 4.5 |
-| accent-fg on accent | 4.92:1 | 10.94:1 | 4.5 |
-| destructive-fg on destructive | 4.83:1 | 7.11:1 | 4.5 |
-| primary text on card | 5.02:1 | 9.81:1 | 4.5 |
-| border-input on card | 3.60:1 | 3.45:1 | 3.0 |
-| border-input on background | 3.44:1 | 3.82:1 | 3.0 |
+| body on background | 13.57:1 | 16.18:1 | 4.5 |
+| body on card | 14.34:1 | 14.74:1 | 4.5 |
+| muted-fg on background | 5.79:1 | 8.85:1 | 4.5 |
+| muted-fg on card | 6.11:1 | 8.06:1 | 4.5 |
+| muted-fg on muted | 5.20:1 | 7.16:1 | 4.5 |
+| primary-fg on primary | 6.52:1 | 8.39:1 | 4.5 |
+| secondary-fg on secondary | 6.51:1 | 8.50:1 | 4.5 |
+| accent-fg on accent | 4.82:1 | 11.47:1 | 4.5 |
+| destructive-fg on destructive | 5.87:1 | 6.50:1 | 4.5 |
+| primary text on card | 6.52:1 | 8.35:1 | 4.5 |
+| accent text on card | 4.82:1 | 11.66:1 | 4.5 |
+| destructive text on card | 5.87:1 | 5.83:1 | 4.5 |
+| secondary text on card | 6.51:1 | 8.66:1 | 4.5 |
+| border-input on card | 4.54:1 | 3.79:1 | 3.0 |
+| border-input on background | 4.30:1 | 4.17:1 | 3.0 |
+
+**Status separation** (CIE76 dE between the three confidence swatches; min 25):
+
+| Pair | Light | Dark |
+|------|-------|------|
+| high / success vs moderate / caution | dE 53.8 | dE 73.0 |
+| high / success vs low / risk | dE 100.8 | dE 115.8 |
+| moderate / caution vs low / risk | dE 60.7 | dE 83.0 |
 
 **Rule:** `--border` is decorative and intentionally below 3:1. Never use it as the sole boundary of an interactive control — use `--border-input`.
 
@@ -85,12 +99,19 @@ Derived (the source palette is light-only), then validated. Deep forest rather t
 
 Never encode meaning in hue alone (colorblind users, and the sun-washed-screen case). Always pair with an icon and a text label.
 
-| Status | Light | Dark | Icon |
-|--------|-------|------|------|
-| Healthy / optimal | `#15803D` | `#4ADE80` | `CheckCircle2` |
-| Caution / monitor | `#A16207` | `#FBBF24` | `AlertTriangle` |
-| Risk / disease | `#DC2626` | `#F87171` | `AlertOctagon` |
-| Neutral / info | `#5A6B80` | `#9DB5A8` | `Info` |
+| Status | Token | Light | Dark | Icon |
+|--------|-------|-------|------|------|
+| Healthy / optimal | `--secondary` | `#196B3B` | `#39D070` | `CheckCircle2` |
+| Caution / monitor | `--accent` | `#8F6D04` | `#F9D02F` | `AlertTriangle` |
+| Risk / disease | `--destructive` | `#C51B2C` | `#F26977` | `AlertOctagon` |
+| Neutral / info | `--muted-foreground` | `#6E5F53` | `#BAAFA0` | `Info` |
+
+**Healthy reads `--secondary`, not `--primary`, and this is not interchangeable.** Primary is the brand's field
+ochre and accent is a gold; once both went warm they sat 16 degrees of hue apart and measured dE 21.9, under the
+25 this system treats as clearly distinct. A success chip and a caution chip stopped being tellable apart. On a
+tool that reports how much to trust a yield forecast before a smallholder spends on seed, that is a correctness
+bug rather than a style one — so `--secondary` stays green and carries the health signal alone. `Badge` and
+`ConfidenceMeter` both point at it, and `check-contrast.py` fails the build path if the separation regresses.
 
 ---
 
