@@ -18,6 +18,12 @@ node_modules/
 frontend/node_modules/
 frontend/dist/
 
+# Source clip for the landing hero's frame sequence. The extracted stills under
+# frontend/public/hero/ ARE committed (LFS); the master is not — it is tens of
+# megabytes, is never served, and is not needed to build. Keep the original
+# somewhere durable outside the repo.
+frontend/scripts/source/
+
 # Build/cache/log outputs
 logs/
 *.log

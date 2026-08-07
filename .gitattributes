@@ -12,6 +12,15 @@
 *.png filter=lfs diff=lfs merge=lfs -text
 *.jpg filter=lfs diff=lfs merge=lfs -text
 *.jpeg filter=lfs diff=lfs merge=lfs -text
+# The landing hero's scroll-scrubbed frame sequence -- a few hundred stills
+# under frontend/public/hero/, rebuilt wholesale by
+# frontend/scripts/extract-hero-frames.py.
+*.webp filter=lfs diff=lfs merge=lfs -text
+
+# The hero's source clip. Never served and never needed to build; it exists
+# only so the frame sequence can be regenerated. Kept out of the tree entirely
+# rather than LFS-tracked -- see .gitignore.
+
 
 # District intelligence caches. Up to 5.5 MB each and rebuilt wholesale by
 # backend/utils/cache_builder.py, so keep them out of the packfile.
