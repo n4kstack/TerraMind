@@ -1,22 +1,19 @@
 import { Link } from 'react-router-dom';
-import { ArrowRight, MapPin, Layers, Sparkles } from 'lucide-react';
-import { Button } from '@/components/ui/Button';
+import { ArrowRight, Sparkles } from 'lucide-react';
 import { NAV_ITEMS } from '@/components/layout/navigation';
 import { Reveal, RevealItem } from '@/components/ui/Reveal';
-import { CanopyBorder } from '@/features/landing/CanopyBorder';
-import stateDistrictMapping from '@/data/state_district_mapping.json';
+import { HeroSequence } from '@/features/landing/HeroSequence';
+import { DISTRICT_COUNT } from '@/features/landing/heroCopy';
 
 /**
  * Landing page.
  *
- * Body copy that sits directly on the animated backdrop uses --foreground in
- * light mode rather than --muted-foreground. This is legibility, not taste:
- * light mode puts mid-grey copy on a near-white surface, so a green leaf lands
- * between the two and closes the contrast gap from both sides. Measured, that
- * copy could not clear WCAG AA at any backdrop strength worth having — the tree
- * had to be scrimmed down to a ghost to save it. Darkening the copy instead
- * buys back the backdrop. Dark mode has no such problem and keeps the muted
- * tone. Copy that sits on a card is untouched.
+ * The hero is a pinned scroll act driven by a frame sequence — see
+ * HeroSequence.tsx. Everything below it is ordinary themed page: no backdrop
+ * canvas, no scrim, no contrast workarounds. That is the point of confining the
+ * footage to one section. The previous design floated an aurora, a growth scene
+ * and a leaf canopy behind the *whole* page, and every block of copy on it had
+ * to be darkened or scrimmed to survive them.
  *
  * Every figure quoted here is derived from something real in this repository --
  * the bundled district map, the module list, the model pipeline. Nothing is
@@ -24,16 +21,6 @@ import stateDistrictMapping from '@/data/state_district_mapping.json';
  * dishonest and, for an advisory tool that influences spending decisions,
  * actively harmful to trust.
  */
-
-const districtMap = stateDistrictMapping as Record<string, string[]>;
-const STATE_COUNT = Object.keys(districtMap).length;
-const DISTRICT_COUNT = Object.values(districtMap).reduce((sum, list) => sum + list.length, 0);
-
-const STATS = [
-  { value: `${STATE_COUNT}`, label: 'States & UTs covered', icon: MapPin },
-  { value: `${DISTRICT_COUNT}`, label: 'Districts with local priors', icon: Layers },
-  { value: `${NAV_ITEMS.length}`, label: 'Intelligence modules', icon: Sparkles },
-];
 
 const STEPS = [
   {
@@ -50,106 +37,18 @@ const STEPS = [
   },
 ];
 
-function Hero() {
-  return (
-    // The aurora and growth scene are mounted from <Layout> as siblings of
-    // <main>: both are fixed, and a fixed element nested under <main> resolves
-    // against main's transform during the route transition instead of the
-    // viewport. The canopy below is absolute, so it has no such constraint and
-    // lives here, with the section it decorates.
-    <section className="relative">
-      {/* Leaves hang over the hero and scroll away with it. Absolute rather
-          than fixed, so no other section ends up reading through foliage. */}
-      <CanopyBorder />
-
-      {/* Local scrim, sized to the copy rather than to the canvas. This is what
-          pays for the canopy being vibrant: it lifts contrast exactly where the
-          badge, heading, sub-copy and buttons sit, and nowhere else. */}
-      <div
-        className="hero-copy-scrim pointer-events-none absolute inset-x-0 top-0 -z-10 h-[34rem]"
-        aria-hidden="true"
-      />
-
-      {/* Deeper bottom padding than the other sections: it is the stage the
-          seedling stands in before the first scroll. */}
-      <div className="mx-auto max-w-7xl px-4 pb-28 pt-16 sm:px-6 sm:pt-24 lg:px-8 lg:pb-40">
-        <Reveal stagger className="mx-auto max-w-3xl text-center">
-          <RevealItem
-            as="h1"
-            className="mt-6 text-balance text-4xl font-extrabold leading-[1.08] tracking-tight text-foreground sm:text-5xl lg:text-display"
-          >
-            Know what to plant,
-            <br />
-            <span className="text-primary">before you plant it.</span>
-          </RevealItem>
-
-          <RevealItem
-            as="p"
-            className="mx-auto mt-6 max-w-2xl text-pretty text-base leading-relaxed text-foreground dark:text-muted-foreground sm:text-lg"
-          >
-            TerraMind turns soil readings, local climate and {DISTRICT_COUNT} districts of
-            agricultural history into decisions you can act on — crop choice, expected yield,
-            fertiliser dosage, and disease diagnosis from a single photograph.
-          </RevealItem>
-
-          <RevealItem
-            className="mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
-          >
-            <Button asChild size="lg" className="w-full sm:w-auto">
-              <Link to="/advisor">
-                Start with your field
-                <ArrowRight aria-hidden="true" />
-              </Link>
-            </Button>
-            <Button asChild size="lg" variant="outline" className="w-full sm:w-auto">
-              <Link to="/augnosis">Ask a farming question</Link>
-            </Button>
-          </RevealItem>
-        </Reveal>
-
-        {/* Real, verifiable figures only. */}
-        <Reveal
-          stagger
-          inView
-          as="ul"
-          className="mx-auto mt-16 grid max-w-3xl grid-cols-1 gap-4 sm:grid-cols-3"
-        >
-          {STATS.map(({ value, label, icon: Icon }) => (
-            // Glass rather than the opaque .card-surface: on short viewports
-            // this row lands where the seedling stands, and an opaque card
-            // would hide it completely at scroll 0. --card and --background sit
-            // close in luminance in both themes, so text contrast is unchanged.
-            <RevealItem
-              key={label}
-              as="li"
-              className="flex items-center gap-4 rounded-lg border border-border bg-card/70 p-5 shadow-sm backdrop-blur-sm"
-            >
-              <span className="grid size-11 shrink-0 place-items-center rounded-md bg-primary/10 text-primary">
-                <Icon className="size-5" aria-hidden="true" />
-              </span>
-              <div>
-                <p className="tabular text-2xl font-extrabold leading-none text-foreground">
-                  {value}
-                </p>
-                <p className="mt-1 text-xs font-medium text-muted-foreground">{label}</p>
-              </div>
-            </RevealItem>
-          ))}
-        </Reveal>
-      </div>
-    </section>
-  );
-}
-
 function Modules() {
   return (
-    <section>
+    // field-transition begins on exactly the colour the hero's fade ends on, so
+    // the join between footage and page has no edge to see. It is on this
+    // section because this is the one that touches the hero.
+    <section className="field-transition">
       <div className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
         <Reveal inView className="mx-auto max-w-2xl text-center">
           <h2 className="text-balance text-3xl font-extrabold tracking-tight text-foreground sm:text-4xl">
             Four modules, one field
           </h2>
-          <p className="mt-4 text-pretty leading-relaxed text-foreground dark:text-muted-foreground">
+          <p className="mt-4 text-pretty leading-relaxed text-muted-foreground">
             Each covers a different point in the season. Use the one that matches where your crop is
             right now.
           </p>
@@ -160,10 +59,10 @@ function Modules() {
             <RevealItem key={to} as="li">
               <Link
                 to={to}
-                className="group flex h-full flex-col gap-4 rounded-lg border border-border bg-card p-6 shadow-sm transition-[box-shadow,border-color,transform] duration-200 ease-organic hover:-translate-y-1 hover:border-primary/30 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                className="card-gradient card-gradient-hover group flex h-full flex-col gap-4 rounded-lg border border-border p-6 transition-[box-shadow,border-color,transform,background-image] duration-200 ease-organic hover:-translate-y-1 hover:border-primary/40 hover:shadow-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="grid size-12 place-items-center rounded-lg bg-primary/10 text-primary transition-transform duration-200 ease-organic group-hover:scale-110">
+                  <span className="grid size-12 place-items-center rounded-lg bg-gradient-to-br from-primary/25 to-primary/5 text-primary ring-1 ring-inset ring-primary/15 transition-transform duration-200 ease-organic group-hover:scale-110">
                     <Icon className="size-6" aria-hidden="true" />
                   </span>
                   <span className="tabular text-xs font-bold text-muted-foreground">
@@ -206,9 +105,7 @@ function HowItWorks() {
               {index + 1}
             </span>
             <h3 className="mt-4 text-h3 text-foreground">{step.title}</h3>
-            <p className="mt-2 text-base leading-relaxed text-foreground dark:text-muted-foreground">
-              {step.body}
-            </p>
+            <p className="mt-2 text-base leading-relaxed text-muted-foreground">{step.body}</p>
           </RevealItem>
         ))}
       </Reveal>
@@ -222,19 +119,18 @@ function SeasonNote() {
       <div className="mx-auto max-w-4xl px-4 py-16 sm:px-6 lg:px-8">
         <Reveal
           inView
-          className="flex flex-col items-start gap-5 rounded-xl border border-border bg-card p-6 sm:flex-row sm:p-8"
+          className="card-gradient flex flex-col items-start gap-5 rounded-xl border border-border p-6 sm:flex-row sm:p-8"
         >
-          <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-accent/10 text-accent">
+          <span className="grid size-12 shrink-0 place-items-center rounded-lg bg-gradient-to-br from-accent/25 to-accent/5 text-accent ring-1 ring-inset ring-accent/15">
             <Sparkles className="size-6" aria-hidden="true" />
           </span>
           <div className="space-y-2">
-            <h2 className="text-h3 text-foreground">One field, the whole season</h2>
+            <h2 className="text-h3 text-foreground">Most tools stop at a single prediction</h2>
             <p className="text-base leading-relaxed text-muted-foreground">
-              Most tools stop at a single prediction. TerraMind stays with the crop: ensemble models
-              pick what to sow and forecast the yield, in-season guidance tunes fertiliser and flags
-              pest pressure, a single leaf photograph names a disease, and a knowledge-graph
-              assistant answers what to do next — with its sources. No account, no hardware, no
-              training.
+              TerraMind stays with the crop across {DISTRICT_COUNT} districts: ensemble models pick
+              what to sow and forecast the yield, in-season guidance tunes fertiliser and flags pest
+              pressure, a single leaf photograph names a disease, and a knowledge-graph assistant
+              answers what to do next — with its sources. No account, no hardware, no training.
             </p>
           </div>
         </Reveal>
@@ -246,7 +142,7 @@ function SeasonNote() {
 export default function Landing() {
   return (
     <>
-      <Hero />
+      <HeroSequence />
       <Modules />
       <HowItWorks />
       <SeasonNote />
