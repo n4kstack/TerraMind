@@ -1,8 +1,10 @@
 from __future__ import annotations
 
 from collections import defaultdict
-from concurrent.futures import ThreadPoolExecutor
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import TimeoutError as FuturesTimeout
 from dataclasses import dataclass
+import logging
 import os
 from typing import Dict, List, Optional
 
@@ -14,6 +16,8 @@ from .query_builder import build_query_profile
 from .reranker import score_documents
 from .structured_logger import RetrievalStructuredLogger
 from .types import RetrievalResult, SourceCallLog
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -32,6 +36,10 @@ class ExternalRetrievalOrchestrator:
         self.logger = RetrievalStructuredLogger()
         self.min_docs = int(os.getenv("GRAPH_RAG_MIN_RETRIEVAL_DOCS", "5"))
         self.max_docs = int(os.getenv("GRAPH_RAG_MAX_RETRIEVAL_DOCS", "10"))
+        # Measured at ~9s across all ten sources on a normal day, so 45s is
+        # generous headroom while still leaving the bulk of the request budget
+        # for generation.
+        self.retrieval_budget_seconds = float(os.getenv("GRAPH_RAG_RETRIEVAL_BUDGET", "45"))
 
     def capability_matrix(self) -> List[Dict]:
         return [a.capability().__dict__ for a in self.adapters]
@@ -54,8 +62,39 @@ class ExternalRetrievalOrchestrator:
                 # A failing source must never take down the pipeline.
                 return adapter, ([], [])
 
-        with ThreadPoolExecutor(max_workers=len(self.adapters) or 1) as pool:
-            results = list(pool.map(_run, self.adapters))
+        # ...and even the slowest single source is capped. Concurrency alone
+        # left this unbounded: an adapter issues up to ten sequential requests
+        # at 12s each, so one unresponsive host could hold the whole request for
+        # two minutes and leave nothing in the budget for generation. Stragglers
+        # are abandoned and whatever finished in time is used.
+        results = []
+        # Deliberately not a `with` block: its __exit__ calls shutdown(wait=True),
+        # which re-joins the very stragglers the timeout just abandoned and hands
+        # back the time we saved. Shut down without waiting instead — an
+        # in-flight request finishes into a result nobody reads.
+        pool = ThreadPoolExecutor(max_workers=len(self.adapters) or 1)
+        futures = {pool.submit(_run, a): a for a in self.adapters}
+        try:
+            for fut in as_completed(futures, timeout=self.retrieval_budget_seconds):
+                try:
+                    results.append(fut.result())
+                except Exception:
+                    results.append((futures[fut], ([], [])))
+        except FuturesTimeout:
+            slow = [futures[f].source_name for f in futures if not f.done()]
+            logger.warning(
+                "External retrieval hit its %.0fs budget; proceeding without: %s",
+                self.retrieval_budget_seconds,
+                ", ".join(slow) or "-",
+            )
+            for f, adapter in futures.items():
+                if f.done():
+                    try:
+                        results.append(f.result())
+                    except Exception:
+                        results.append((adapter, ([], [])))
+        finally:
+            pool.shutdown(wait=False, cancel_futures=True)
 
         for adapter, (raw_records, logs) in results:
             capability = adapter.capability()

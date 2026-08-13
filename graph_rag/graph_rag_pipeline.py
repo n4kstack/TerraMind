@@ -50,6 +50,25 @@ class GraphRAGPipeline:
         self.external_top_k = int(os.getenv("GRAPH_RAG_EXTERNAL_TOP_K", "4"))
         self.external_max_chars = int(os.getenv("GRAPH_RAG_EXTERNAL_MAX_CHARS", "700"))
 
+        # Wall-clock ceiling for one /query, and the reason a first-ever question
+        # used to fail and then succeed on retry.
+        #
+        # The SPA aborts at 180s (AUGNOSIS_TIMEOUT_MS). The server had no ceiling
+        # at all: OPENROUTER_TIMEOUT is 240s for a *single* call, and a request
+        # can make several in sequence — primary, fallback model, completion
+        # retry. So on a cold model the first call ran past 180s, the browser
+        # gave up with nothing, and the server carried on and finished. That
+        # finish is what made attempt two fast: the model was now warm at
+        # OpenRouter, so the identical question returned in time and looked like
+        # the retry had "fixed" it.
+        #
+        # Budgeting below the client's abort inverts that: generation now yields
+        # first, and yields the graph-grounded answer rather than nothing.
+        self.request_budget_seconds = float(os.getenv("GRAPH_RAG_REQUEST_BUDGET", "150"))
+        # Below this, another round trip cannot plausibly land, so spend what is
+        # left returning what we already have.
+        self.min_generation_seconds = float(os.getenv("GRAPH_RAG_MIN_GENERATION", "25"))
+
         self.kg_builder = AgroKGBuilder()
         self.kg_builder.build()
 
@@ -58,6 +77,9 @@ class GraphRAGPipeline:
         self.external_orchestrator = ExternalRetrievalOrchestrator()
 
     def run(self, user_query: str, use_llm: bool = True) -> Dict:
+        # Clock starts here, not at first generation: retrieval spends from the
+        # same budget the browser is counting down.
+        self._deadline = time.monotonic() + self.request_budget_seconds
         parsed: ParsedIntent = self.intent_parser.parse(user_query)
 
         # Anything not recognisably agricultural stops here. It previously fell
@@ -234,6 +256,16 @@ class GraphRAGPipeline:
             return "\n".join(lines)
         return f"{base}\n\n" + "\n".join(lines)
 
+    def _remaining_budget(self) -> float:
+        """Seconds left before the browser stops listening. Never negative."""
+        deadline = getattr(self, "_deadline", None)
+        if deadline is None:
+            return self.request_budget_seconds
+        return max(0.0, deadline - time.monotonic())
+
+    def _can_afford_another_call(self) -> bool:
+        return self._remaining_budget() >= self.min_generation_seconds
+
     def _generate_with_ollama(
         self,
         user_query: str,
@@ -242,8 +274,20 @@ class GraphRAGPipeline:
         external_context_text: str,
     ) -> str:
         prompt = self._build_prompt(user_query, parsed, kg_context_text, external_context_text)
+
+        # Retrieval may already have eaten the budget on a bad network day. The
+        # graph answer is real content, so returning it beats spending the
+        # user's remaining patience on a call that cannot land.
+        if not self._can_afford_another_call():
+            return self._fallback_response(parsed, kg_context_text)
+
         try:
-            answer = llm_generate(prompt, self.ollama_model, self.graph_rag_llm_max_tokens)
+            answer = llm_generate(
+                prompt,
+                self.ollama_model,
+                self.graph_rag_llm_max_tokens,
+                timeout=self._remaining_budget(),
+            )
             if answer:
                 return self._finalize_answer(
                     answer,
@@ -300,7 +344,9 @@ class GraphRAGPipeline:
         if not candidate:
             return self._fallback_response(parsed, kg_context_text)
 
-        if self._is_incomplete_response(candidate):
+        # A tidier answer is not worth losing the answer. If the completion pass
+        # cannot finish inside the budget, ship the slightly rough one.
+        if self._is_incomplete_response(candidate) and self._can_afford_another_call():
             completed = self._retry_for_complete_response(
                 url,
                 user_query,
@@ -400,8 +446,18 @@ class GraphRAGPipeline:
             return None
 
         for fallback_model in unique_candidates:
+            # Walking the whole candidate list is how a slow primary turned into
+            # a multi-minute request: each fallback got the full 240s of its own.
+            # Stop as soon as the remaining budget cannot seat another call.
+            if not self._can_afford_another_call():
+                return None
             try:
-                answer = llm_generate(prompt, fallback_model, max(1000, self.graph_rag_llm_max_tokens - 120))
+                answer = llm_generate(
+                    prompt,
+                    fallback_model,
+                    max(1000, self.graph_rag_llm_max_tokens - 120),
+                    timeout=self._remaining_budget(),
+                )
                 if answer:
                     return answer
             except Exception:
@@ -756,7 +812,12 @@ class GraphRAGPipeline:
             + " 'To narrow this down' section. No unfinished bullets or sentences."
         )
         try:
-            candidate = llm_generate(retry_prompt, self.ollama_model, self.graph_rag_llm_retry_max_tokens)
+            candidate = llm_generate(
+                retry_prompt,
+                self.ollama_model,
+                self.graph_rag_llm_retry_max_tokens,
+                timeout=self._remaining_budget(),
+            )
             if candidate and not self._is_incomplete_response(candidate):
                 return candidate
         except Exception:

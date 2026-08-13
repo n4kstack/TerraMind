@@ -48,6 +48,44 @@ USER_AGENT = "TerraMind/1.0 (agricultural advisory; AGRIS ODS CC-BY-4.0 reuse)"
 
 _lock = threading.Lock()
 _records: Optional[List[Dict]] = None
+_warmup_thread: Optional[threading.Thread] = None
+_warmup_lock = threading.Lock()
+
+
+def is_ready() -> bool:
+    """True once the subsets are downloaded and parsed."""
+    return _records is not None
+
+
+def start_warmup() -> None:
+    """
+    Build the index on a background thread.
+
+    Called at application startup so the first user question does not pay for
+    it. On a cold container this downloads ~150 MB of subsets (IN0 alone is
+    144 MB) and, before this existed, it did so *inside* the first request
+    while holding ``_lock`` — which is precisely how a first-ever query
+    exhausted the client's budget while a retry, arriving after the download
+    finished, returned instantly.
+    """
+    global _warmup_thread
+    with _warmup_lock:
+        if _records is not None:
+            return
+        if _warmup_thread is not None and _warmup_thread.is_alive():
+            return
+
+        def _warm():
+            try:
+                load_records()
+            except Exception as exc:  # never take the app down for a cache warm
+                logger.warning("AGRIS ODS warmup failed: %s", exc)
+
+        _warmup_thread = threading.Thread(
+            target=_warm, name="agris-ods-warmup", daemon=True
+        )
+        _warmup_thread.start()
+        logger.info("AGRIS ODS warmup started in background")
 
 
 def configured_subsets() -> List[str]:
@@ -152,7 +190,19 @@ def _tokenize(value: str) -> List[str]:
 
 
 def search(queries: List[str], limit: int = 8) -> List[Dict]:
-    """Rank cached AGRIS records by token overlap with the query terms."""
+    """
+    Rank cached AGRIS records by token overlap with the query terms.
+
+    Never blocks on the index. If the warmup has not finished, this source sits
+    the round out and the other nine adapters answer — a slightly thinner
+    evidence set beats a request that overruns the client's timeout and shows
+    the user nothing at all.
+    """
+    if not is_ready():
+        start_warmup()
+        logger.info("AGRIS ODS index still warming; skipping this source for now")
+        return []
+
     records = load_records()
     if not records:
         return []

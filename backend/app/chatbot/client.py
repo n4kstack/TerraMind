@@ -48,7 +48,12 @@ def _extract_answer_text(message: dict) -> str:
     return ""
 
 
-def generate(prompt: str, model: Optional[str] = None, num_predict: Optional[int] = None) -> str:
+def generate(
+    prompt: str,
+    model: Optional[str] = None,
+    num_predict: Optional[int] = None,
+    timeout: Optional[float] = None,
+) -> str:
     """
     Send a prompt to OpenRouter and return the generated text.
 
@@ -90,9 +95,18 @@ def generate(prompt: str, model: Optional[str] = None, num_predict: Optional[int
         "Content-Type": "application/json",
     }
 
+    # A caller with its own deadline may shorten this, never lengthen it. The
+    # default (240s) outlives the SPA's 180s abort, so an unbounded call can
+    # only ever finish after the user has already been shown a timeout.
+    effective_timeout = OPENROUTER_TIMEOUT_SECONDS
+    if timeout is not None:
+        effective_timeout = max(5.0, min(float(timeout), float(OPENROUTER_TIMEOUT_SECONDS)))
+
     try:
-        logger.info("Sending request to OpenRouter [%s] ...", model_name)
-        with httpx.Client(timeout=OPENROUTER_TIMEOUT_SECONDS) as client:
+        logger.info(
+            "Sending request to OpenRouter [%s] (timeout=%.0fs) ...", model_name, effective_timeout
+        )
+        with httpx.Client(timeout=effective_timeout) as client:
             resp = client.post(
                 "https://openrouter.ai/api/v1/chat/completions",
                 headers=headers,
@@ -103,7 +117,7 @@ def generate(prompt: str, model: Optional[str] = None, num_predict: Optional[int
         raise LLMError("Cannot connect to OpenRouter API endpoint.") from exc
     except httpx.TimeoutException:
         raise LLMError(
-            f"OpenRouter request timed out after {OPENROUTER_TIMEOUT_SECONDS}s."
+            f"OpenRouter request timed out after {effective_timeout:.0f}s."
         )
     except httpx.HTTPStatusError as exc:
         raise LLMError(f"OpenRouter returned HTTP {exc.response.status_code}: {exc.response.text}")

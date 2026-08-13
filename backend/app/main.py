@@ -209,6 +209,36 @@ async def startup():
     log.info("=== TerraMind Pre-Sowing Advisor API starting ===")
     log.info("Version: %s", MODEL_VERSION)
 
+    # Pay the cold-start costs here rather than inside somebody's first
+    # question. Both run on background threads, so startup is not delayed and a
+    # failure in either only costs a slower or thinner first answer.
+    try:
+        from graph_rag.retrieval import agris_ods
+
+        agris_ods.start_warmup()
+    except Exception as exc:
+        log.warning("AGRIS ODS warmup could not be scheduled: %s", exc)
+
+    try:
+        import threading
+
+        from app.chatbot.client import is_available as llm_available, generate as llm_generate
+
+        def _warm_llm():
+            # A hosted free-tier model is slow on its first hit and quick once
+            # warm. That gap is what made a first AugNosis query time out and
+            # the identical retry succeed, so spend it on a throwaway token now.
+            try:
+                if llm_available():
+                    llm_generate("ping", num_predict=1, timeout=30)
+                    log.info("LLM warmup complete")
+            except Exception as exc:
+                log.info("LLM warmup skipped: %s", exc)
+
+        threading.Thread(target=_warm_llm, name="llm-warmup", daemon=True).start()
+    except Exception as exc:
+        log.warning("LLM warmup could not be scheduled: %s", exc)
+
 
 if __name__ == "__main__":
     import uvicorn
