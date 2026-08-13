@@ -59,7 +59,18 @@ backend/.env.*
 backend/artifacts/*/advisor/
 backend/artifacts/edge/fallback_events.jsonl
 backend/artifacts/**/sync_state.json
-trained_artifacts_fast/
+
+# The scratch copy of the diagnosis CNN that training drops at the repo root.
+# The leading slash is load-bearing: written bare, this pattern matched at every
+# depth and silently swallowed the *real* artifacts under
+# ml/post_symptom_diagnosis/saved_models/trained_artifacts_fast/ too. They never
+# reached the Space, so model_wrapper.load() raised FileNotFoundError and every
+# /api/v1/diagnosis/predict answered 503 "Diagnosis model is not available".
+/trained_artifacts_fast/
+
+# The .pth checkpoint is the training-side fallback; inference only ever reads
+# the TorchScript export and the metadata JSON, so keep 14 MB out of the image.
+ml/post_symptom_diagnosis/saved_models/trained_artifacts_fast/*.pth
 
 # Local user files
 *.crdownload

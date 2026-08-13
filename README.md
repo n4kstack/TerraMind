@@ -430,7 +430,7 @@ Full walkthrough: [README_HUGGINGFACE.md](README_HUGGINGFACE.md).
 
 ## Known Issues & Limitations
 
-- **Disease diagnosis needs external weights.** The CNN artifacts are not in this repo. Place them at `ml/post_symptom_diagnosis/saved_models/trained_artifacts_fast/` (see that folder's README). Until then, `/api/v1/diagnosis/predict` returns an error.
+- **Disease diagnosis weights are LFS-tracked, so a plain clone won't run it.** The CNN artifacts now ship with the repo at `ml/post_symptom_diagnosis/saved_models/trained_artifacts_fast/`, but a clone made without Git LFS leaves the 14 MB TorchScript export as a 133-byte pointer file, and `/api/v1/diagnosis/predict` answers `503 Diagnosis model is not available`. Run `git lfs pull` after cloning.
 
 - **Dependency versions are load-bearing.** `scikit-learn==1.8.0` and `numpy>=2.0,<3` are pinned exactly because the committed models embed the library versions that serialized them. Installing a different scikit-learn breaks unpickling with `No module named '_loss'`, and every advisor request fails. Don't relax these pins without retraining.
 
