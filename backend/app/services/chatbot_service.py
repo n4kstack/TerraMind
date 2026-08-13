@@ -18,6 +18,7 @@ from app.chatbot import document_registry
 from app.chatbot.context_builder import build_full_prompt, get_refusal_message
 from app.chatbot.client import generate as ollama_generate, OllamaError
 from app.services.retrieval_guardrails import run_guardrails
+from graph_rag.domain_policy import classify_query, refusal_message, smalltalk_reply
 from app.services.intent_detector import detect_user_intent, Intent
 
 logger = logging.getLogger(__name__)
@@ -146,6 +147,29 @@ def ask(
     # ── 1. Detect user intent ────────────────────────────────────────────
     intent = detect_user_intent(question)
     logger.info("Detected intent: %s  (query=%r)", intent, question[:80])
+
+    # ── 1b. Domain gate ──────────────────────────────────────────────────
+    # Runs before retrieval: there is no point embedding and searching for a
+    # question this assistant will not answer, and courtesy deserves a reply
+    # rather than the refusal template.
+    domain = classify_query(question)
+    if domain == "smalltalk":
+        return {
+            "answer": smalltalk_reply(question, assistant="TerraMind"),
+            "allowed": True,
+            "reason": "smalltalk",
+            "sources": [],
+            "intent": intent,
+        }
+    if domain == "off_topic":
+        logger.info("Domain policy BLOCKED (query=%r)", question[:80])
+        return {
+            "answer": refusal_message(assistant="TerraMind"),
+            "allowed": False,
+            "reason": "off_topic",
+            "sources": [],
+            "intent": intent,
+        }
 
     # ── 2. Ensure index is loaded ────────────────────────────────────────
     try:

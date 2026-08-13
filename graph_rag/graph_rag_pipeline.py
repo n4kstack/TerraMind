@@ -9,33 +9,15 @@ import requests
 
 from app.chatbot.client import generate as llm_generate, OllamaError
 
+from .domain_policy import classify_query, refusal_message, smalltalk_reply
 from .graph_builder import AgroKGBuilder
 from .intent_parser import IntentParser, ParsedIntent
-from .query_engine import GraphQueryEngine
+from .query_engine import GraphQueryEngine, QueryContext
 from .retrieval import ExternalRetrievalOrchestrator
 
 
 class GraphRAGPipeline:
     """End-to-end GraphRAG pipeline: parse -> query KG -> generate answer."""
-
-    _AGRI_DOMAIN_PATTERNS = [
-        r"\bcrop(s)?\b",
-        r"\bsoil\b|\bsoil science\b",
-        r"\birrigation\b",
-        r"\bfertilizer(s)?\b",
-        r"\bpesticide(s)?\b",
-        r"\bplant disease(s)?\b|\bdisease\b|\bpest(s)?\b",
-        r"\byield\b|\bproductivity\b",
-        r"\bagronomy\b",
-        r"\bprecision agriculture\b|\bsmart farming\b",
-        r"\blivestock\b",
-        r"\bsustainab(le|ility)\b",
-        r"\bremote sensing\b",
-        r"\bagri(culture)?\s*(ai|ml|machine learning)\b",
-        r"\bsupply chain\b",
-        r"\brisk prediction\b",
-        r"\bclimate\b.*\bcrop\b|\bcrop\b.*\bclimate\b",
-    ]
 
     def __init__(
         self,
@@ -77,7 +59,17 @@ class GraphRAGPipeline:
 
     def run(self, user_query: str, use_llm: bool = True) -> Dict:
         parsed: ParsedIntent = self.intent_parser.parse(user_query)
-        is_agri_query = self._is_agriculture_query(user_query, parsed)
+
+        # Anything not recognisably agricultural stops here. It previously fell
+        # through to a general-purpose prompt, which answered whatever it was
+        # asked — including programming questions — while the response still
+        # carried the knowledge-graph grounding banner.
+        domain = classify_query(
+            user_query,
+            has_domain_entities=self._has_domain_entities(parsed),
+        )
+        if domain != "agriculture":
+            return self._non_agriculture_result(user_query, parsed, domain, use_llm)
 
         qctx = self.query_engine.query(
             crop_name=parsed.crop,
@@ -90,59 +82,6 @@ class GraphRAGPipeline:
 
         kg_context_text = self.query_engine.format_context_for_llm(qctx)
         has_local_kb_context = bool(qctx.pests_found or qctx.diseases_found or qctx.treatments)
-
-        if not is_agri_query:
-            external_meta = {
-                "enabled": bool(self.enable_external_sources),
-                "attempted": False,
-                "agris_called": False,
-                "agricola_called": False,
-                "pubag_called": False,
-                "cabi_called": False,
-                "agecon_called": False,
-                "asabe_called": False,
-                "agris_results": 0,
-                "agricola_results": 0,
-                "pubag_results": 0,
-                "cabi_results": 0,
-                "agecon_results": 0,
-                "asabe_results": 0,
-                "total_results": 0,
-                "context_used": False,
-                "source_counts": {},
-                "skipped_non_agriculture": True,
-            }
-            grounding = {
-                "allow_generation": True,
-                "message": "Non-agriculture query detected. AGRIS retrieval was skipped.",
-                "conservative_mode": False,
-                "metadata_limited": False,
-            }
-
-            if use_llm:
-                answer = self._generate_general_response(user_query)
-            else:
-                answer = "This query appears outside agriculture. AGRIS retrieval was skipped."
-
-            return {
-                "query": user_query,
-                "parsed_intent": asdict(parsed),
-                "context": asdict(qctx),
-                "kg_context_text": kg_context_text,
-                "response": answer,
-                "engine": {
-                    "type": "graph_rag",
-                    "llm_model": self.ollama_model if use_llm else None,
-                    "llm_enabled": bool(use_llm),
-                    "ollama_base_url": self.ollama_base_url,
-                    "external_sources": external_meta,
-                    "grounding": grounding,
-                    "graph_stimulation": {
-                        "external_evidence_docs": 0,
-                        "external_evidence_injected": False,
-                    },
-                },
-            }
 
         external_context_text, external_meta, grounding = self._build_external_context(
             user_query,
@@ -181,6 +120,87 @@ class GraphRAGPipeline:
                     "external_evidence_docs": int(external_meta.get("total_results", 0)),
                     "external_evidence_injected": bool(external_meta.get("context_used", False)),
                 },
+            },
+        }
+
+    @staticmethod
+    def _has_domain_entities(parsed: Optional[ParsedIntent]) -> bool:
+        """
+        Did the intent parser resolve anything against the knowledge graph?
+
+        A stronger admit signal than any word list, because it means the query
+        named something the graph actually knows about.
+        """
+        if parsed is None:
+            return False
+        if any([
+            bool(parsed.crop),
+            bool(parsed.pest),
+            bool(parsed.disease),
+            bool(parsed.soil_type),
+            bool(parsed.pesticide),
+            bool(parsed.climate_conditions),
+        ]):
+            return True
+
+        intent_type = str(getattr(parsed, "intent_type", "") or "").lower()
+        return any(
+            token in intent_type
+            for token in ["crop", "pest", "disease", "soil", "fert", "irrig", "agri"]
+        )
+
+    def _non_agriculture_result(
+        self,
+        user_query: str,
+        parsed: ParsedIntent,
+        domain: str,
+        use_llm: bool,
+    ) -> Dict:
+        """
+        Answer courtesy, decline everything else — and in both cases return an
+        empty context.
+
+        The empty context is the second half of the fix. `context` drives the
+        "Grounded in knowledge graph / High confidence / Sources" panel in the
+        UI, so returning a populated one here is what stamped a Python tutorial
+        with ICAR and EPPO attribution.
+        """
+        answer = (
+            smalltalk_reply(user_query, assistant="TerraMind")
+            if domain == "smalltalk"
+            else refusal_message(assistant="AugNosis")
+        )
+
+        return {
+            "query": user_query,
+            "parsed_intent": asdict(parsed),
+            "context": asdict(QueryContext()),
+            "kg_context_text": "",
+            "response": answer,
+            "engine": {
+                "type": "graph_rag",
+                "llm_model": None,  # No model was consulted, so claim none.
+                "llm_enabled": bool(use_llm),
+                "ollama_base_url": self.ollama_base_url,
+                "external_sources": {
+                    "enabled": bool(self.enable_external_sources),
+                    "attempted": False,
+                    "total_results": 0,
+                    "context_used": False,
+                    "source_counts": {},
+                    "skipped_non_agriculture": True,
+                },
+                "grounding": {
+                    "allow_generation": False,
+                    "message": f"Query classified as {domain}; outside the agricultural domain.",
+                    "conservative_mode": True,
+                    "metadata_limited": False,
+                },
+                "graph_stimulation": {
+                    "external_evidence_docs": 0,
+                    "external_evidence_injected": False,
+                },
+                "domain": domain,
             },
         }
 
@@ -504,73 +524,6 @@ class GraphRAGPipeline:
             + "  the farmer cannot act on.\n"
         )
 
-    def _build_general_prompt(self, user_query: str) -> str:
-        return (
-            "You are a helpful assistant. Answer the user query clearly and accurately. "
-            "Use concise headings and practical points when helpful.\n\n"
-            f"USER QUERY:\n{user_query}"
-        )
-
-    def _generate_general_response(self, user_query: str) -> str:
-        try:
-            answer = llm_generate(self._build_general_prompt(user_query), self.ollama_model, 320)
-            if answer:
-                cleaned = answer.strip()
-                if self._looks_truncated(cleaned):
-                    retry_prompt = (
-                        self._build_general_prompt(user_query)
-                        + "\n\nIMPORTANT: Provide a complete answer and finish all sentences."
-                    )
-                    retried = llm_generate(retry_prompt, self.ollama_model, 520)
-                    if retried:
-                        cleaned = retried.strip()
-
-                if self._looks_truncated(cleaned):
-                    cleaned = self._append_general_completion(cleaned)
-
-                return cleaned
-        except Exception:
-            pass
-
-        return "I can help with that. Please share a bit more detail so I can give a precise answer."
-
-    def _is_agriculture_query(self, user_query: str, parsed: Optional[ParsedIntent] = None) -> bool:
-        text = (user_query or "").lower()
-        if not text.strip():
-            return False
-
-        # Prefer parsed intent/entities when available to reduce false negatives.
-        if parsed is not None:
-            if any([
-                bool(parsed.crop),
-                bool(parsed.pest),
-                bool(parsed.disease),
-                bool(parsed.soil_type),
-                bool(parsed.pesticide),
-                bool(parsed.climate_conditions),
-            ]):
-                return True
-
-            intent_type = str(getattr(parsed, "intent_type", "") or "").lower()
-            if any(token in intent_type for token in ["crop", "pest", "disease", "soil", "fert", "irrig", "agri"]):
-                return True
-
-        for pattern in self._AGRI_DOMAIN_PATTERNS:
-            if re.search(pattern, text):
-                return True
-
-        # Lightweight lexical fallback for common crop/pest wording.
-        agri_terms = {
-            "cotton", "rice", "wheat", "maize", "corn", "sugarcane", "soybean",
-            "chickpea", "mustard", "groundnut", "tomato", "potato", "onion",
-            "aphid", "thrips", "whitefly", "bollworm", "stem borer", "leafhopper",
-            "fungicide", "insecticide", "herbicide", "spray", "field", "farm",
-        }
-        if any(term in text for term in agri_terms):
-            return True
-
-        return False
-
     def _looks_truncated(self, text: str) -> bool:
         stripped = (text or "").strip()
         if not stripped:
@@ -589,19 +542,6 @@ class GraphRAGPipeline:
             return True
 
         return False
-
-    def _append_general_completion(self, text: str) -> str:
-        cleaned = (text or "").rstrip()
-        cleaned = re.sub(r"\*\*$", "", cleaned).rstrip()
-        if not cleaned:
-            return "Sorry - I could not generate a complete answer. Please rephrase the question."
-
-        # This runs on the general (non-agronomic) path, so no crop-protection
-        # boilerplate is appended here: it used to bolt resistance-rotation and
-        # pre-harvest-interval advice onto answers that were not about farming.
-        if not re.search(r"[.!?]$", cleaned):
-            cleaned += "."
-        return cleaned
 
     def _build_external_context(self, user_query: str, parsed: ParsedIntent, has_local_kb_context: bool):
         default_meta = {

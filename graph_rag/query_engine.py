@@ -15,7 +15,10 @@ class QueryContext:
     high_risk_diseases_now: List[str] = field(default_factory=list)
     urgent_actions: List[str] = field(default_factory=list)
     data_sources: List[str] = field(default_factory=list)
-    confidence: str = "high"
+    # Starts low and is raised only by what the traversal actually finds. The
+    # default used to be "high", so an empty context — including one built for a
+    # query the graph knew nothing about — still reported high confidence.
+    confidence: str = "low"
     warnings: List[str] = field(default_factory=list)
 
 
@@ -113,12 +116,36 @@ class GraphQueryEngine:
             pesticide_ids = [t["pesticide_id"] for t in ctx.treatments if "pesticide_id" in t]
             ctx.tank_mix_warnings = self._check_tank_mix_safety(pesticide_ids)
 
-        ctx.data_sources = [
-            "TerraMind AgroKG v1.0",
-            "ICAR recommendations",
-            "PPDB pesticide database",
-            "EPPO crop protection data",
-        ]
+        # Cite only what the traversal actually consulted.
+        #
+        # This block used to assign all four sources unconditionally, so every
+        # answer — including ones where the graph matched nothing at all —
+        # arrived stamped "Grounded in knowledge graph" with ICAR, PPDB and EPPO
+        # attribution. Sources are the entire trust proposition of this feature
+        # (MASTER §5.3); citing ones that were never opened is worse than citing
+        # none, because it is unfalsifiable from the UI.
+        has_protection_data = bool(ctx.pests_found or ctx.diseases_found)
+        has_graph_content = bool(
+            ctx.crop or has_protection_data or ctx.treatments or ctx.climate_risk_assessment
+        )
+
+        sources: List[str] = []
+        if has_graph_content:
+            sources.append("TerraMind AgroKG v1.0")
+        if has_protection_data or ctx.treatments:
+            sources.append("ICAR recommendations")
+        if ctx.treatments:
+            sources.append("PPDB pesticide database")
+        if has_protection_data:
+            sources.append("EPPO crop protection data")
+        ctx.data_sources = sources
+
+        if ctx.treatments and has_protection_data:
+            ctx.confidence = "high"
+        elif has_graph_content:
+            ctx.confidence = "medium"
+        else:
+            ctx.confidence = "low"
 
         return ctx
 
