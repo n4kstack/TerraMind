@@ -46,7 +46,7 @@ Recommends what to plant before the season starts, from soil and climate inputs.
 Advises mid-season, once the crop is in the ground: pest pressure level, recommended fertilizer, dosage, application window, and expected yield after treatment.
 
 ### 🔬 Post-Symptom Diagnosis
-Upload a leaf photo and get a disease classification with a downloadable PDF report. *(Requires externally-trained CNN weights — see [Known Issues](#known-issues--limitations).)*
+Upload a leaf photo and get a disease classification across 88 crop/disease classes, with a downloadable PDF report. The CNN ships with the repo — clone with Git LFS, or the weights arrive as a pointer file and the endpoint returns 503.
 
 ### 📚 AugNosis — Graph RAG + Document Assistant
 Grounded question answering over agricultural literature, combining:
