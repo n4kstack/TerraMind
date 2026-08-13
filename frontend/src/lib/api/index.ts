@@ -112,11 +112,19 @@ export function askDiagnosisAssistant(payload: AssistantRequest): Promise<Assist
 
 /* ----------------------------------------------------------------- AugNosis */
 
-export function queryAugNosis(query: string, useLlm = true): Promise<AugNosisResponse> {
+/**
+ * `signal` matters more here than on the other endpoints: a graph traversal
+ * plus a hosted LLM call runs on a 180s budget, which is far too long to hold a
+ * user hostage to an answer they have already decided against.
+ */
+export function queryAugNosis(
+  query: string,
+  opts: { useLlm?: boolean; signal?: AbortSignal } = {},
+): Promise<AugNosisResponse> {
   return postJson<AugNosisResponse>(
     '/graph-rag/query',
-    { query, use_llm: useLlm },
-    { timeoutMs: AUGNOSIS_TIMEOUT_MS },
+    { query, use_llm: opts.useLlm ?? true },
+    { timeoutMs: AUGNOSIS_TIMEOUT_MS, signal: opts.signal },
   );
 }
 

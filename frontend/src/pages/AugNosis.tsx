@@ -9,13 +9,14 @@ import {
   Network,
   Send,
   Sparkles,
+  Square,
   User,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/PageHeader';
 import { Button } from '@/components/ui/Button';
 import { Badge } from '@/components/ui/Badge';
 import { Card, CardContent } from '@/components/ui/Card';
-import { fetchAugNosisHealth, queryAugNosis } from '@/lib/api';
+import { ApiError, fetchAugNosisHealth, queryAugNosis } from '@/lib/api';
 import type { AugNosisContext, AugNosisHealth } from '@/lib/api';
 import { messageVariants } from '@/lib/motion';
 
@@ -28,6 +29,18 @@ interface Message {
   content: string;
   context?: AugNosisContext;
   failed?: boolean;
+  /** Stopped by the user. Rendered as a quiet note, never as an error. */
+  canceled?: boolean;
+}
+
+/**
+ * Date.now() alone collides when two messages land in the same millisecond,
+ * which duplicate React keys and drops a bubble from the transcript.
+ */
+let messageSeq = 0;
+function nextId(role: 'u' | 'a'): string {
+  messageSeq += 1;
+  return `${role}-${Date.now()}-${messageSeq}`;
 }
 
 const SUGGESTIONS = [
@@ -203,6 +216,7 @@ export default function AugNosis() {
   const [health, setHealth] = useState<AugNosisHealth | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -211,35 +225,79 @@ export default function AugNosis() {
       .catch(() => setHealth(null));
   }, []);
 
+  // Navigating away mid-answer should not leave a request running.
+  useEffect(() => () => abortRef.current?.abort(), []);
+
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' });
   }, [messages, pending]);
 
+  /**
+   * Stop the in-flight answer, keeping whatever is already typed. The rejection
+   * lands in `send`'s catch, which owns the transcript note and the pending
+   * reset — so this only has to fire the abort.
+   */
+  function stop() {
+    abortRef.current?.abort();
+    textareaRef.current?.focus();
+  }
+
   async function send(question: string) {
     const trimmed = question.trim();
-    if (!trimmed || pending) return;
+    if (!trimmed) return;
 
-    const userMessage: Message = { id: `u-${Date.now()}`, role: 'user', content: trimmed };
-    setMessages((prev) => [...prev, userMessage]);
+    // A new question supersedes whatever is in flight rather than being refused
+    // — a 180s budget is far too long to make someone wait out an answer they
+    // no longer want. Aborting *before* installing the new controller is what
+    // makes this safe: the superseded request's handlers find a ref that no
+    // longer points at them and bow out without touching state, so only the
+    // newest question ever writes to the transcript or clears `pending`.
+    const superseded = abortRef.current !== null;
+    abortRef.current?.abort();
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const isCurrent = () => abortRef.current === controller;
+
+    setMessages((prev) => [
+      ...prev,
+      // Close the abandoned answer off here, synchronously, rather than from its
+      // own rejection handler: that runs a tick later, by which point the new
+      // question is already on screen and the note would attach to the wrong one.
+      ...(superseded
+        ? [{ id: nextId('a'), role: 'assistant' as const, content: 'Response stopped.', canceled: true }]
+        : []),
+      { id: nextId('u'), role: 'user' as const, content: trimmed },
+    ]);
     setInput('');
     setPending(true);
 
     try {
-      const result = await queryAugNosis(trimmed);
+      const result = await queryAugNosis(trimmed, { signal: controller.signal });
+      if (!isCurrent()) return;
       setMessages((prev) => [
         ...prev,
         {
-          id: `a-${Date.now()}`,
+          id: nextId('a'),
           role: 'assistant',
           content: result.response || 'No answer was returned for that question.',
           context: result.context,
         },
       ]);
     } catch (error) {
+      if (!isCurrent()) return;
+      // Superseding aborts never reach here (the ref check above catches them),
+      // so a cancellation at this point was the Stop button: note it quietly.
+      if (error instanceof ApiError && error.isCanceled) {
+        setMessages((prev) => [
+          ...prev,
+          { id: nextId('a'), role: 'assistant', content: 'Response stopped.', canceled: true },
+        ]);
+        return;
+      }
       setMessages((prev) => [
         ...prev,
         {
-          id: `a-${Date.now()}`,
+          id: nextId('a'),
           role: 'assistant',
           content:
             error instanceof Error
@@ -249,8 +307,11 @@ export default function AugNosis() {
         },
       ]);
     } finally {
-      setPending(false);
-      textareaRef.current?.focus();
+      if (isCurrent()) {
+        abortRef.current = null;
+        setPending(false);
+        textareaRef.current?.focus();
+      }
     }
   }
 
@@ -348,10 +409,14 @@ export default function AugNosis() {
                         ? 'bg-primary text-primary-foreground'
                         : message.failed
                           ? 'border border-destructive/25 bg-destructive/[0.07] text-foreground'
-                          : 'border border-border bg-muted/50 text-foreground',
+                          : message.canceled
+                            ? // Stopping was intentional, so this reads as a status
+                              // line rather than something that went wrong.
+                              'border border-dashed border-border italic text-muted-foreground'
+                            : 'border border-border bg-muted/50 text-foreground',
                     )}
                   >
-                    {message.role === 'assistant' && !message.failed ? (
+                    {message.role === 'assistant' && !message.failed && !message.canceled ? (
                       <Suspense
                         fallback={<span className="whitespace-pre-wrap">{message.content}</span>}
                       >
@@ -415,10 +480,38 @@ export default function AugNosis() {
               placeholder="Ask about a symptom, treatment or timing…"
               className="max-h-32 min-h-[2.75rem] flex-1 resize-none rounded-md border border-border-input bg-card px-3.5 py-3 text-base text-foreground placeholder:text-muted-foreground focus-visible:border-ring focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/25"
             />
-            <Button type="submit" size="icon" disabled={!input.trim() || pending} aria-label="Send question">
+            {/* Shown alongside Send rather than replacing it: stopping and
+                asking something else are different intentions, and while an
+                answer is generating a user may want either. */}
+            {pending && (
+              <Button
+                type="button"
+                size="icon"
+                variant="outline"
+                onClick={stop}
+                aria-label="Stop generating the current answer"
+              >
+                {/* Smaller than the icon-button default: a solid stop glyph
+                    reads better at 14px than filling the whole 20px box. */}
+                <Square className="size-3.5 fill-current" aria-hidden="true" />
+              </Button>
+            )}
+            <Button
+              type="submit"
+              size="icon"
+              disabled={!input.trim()}
+              aria-label={pending ? 'Stop the current answer and ask this instead' : 'Send question'}
+            >
               <Send aria-hidden="true" />
             </Button>
           </form>
+          {/* The disclaimer stays put while generating — a safety notice is not
+              something to swap out for a transient hint. */}
+          {pending && (
+            <p className="mt-2 px-1 text-xs text-muted-foreground">
+              Generating — stop to cancel, or send a new question to replace it.
+            </p>
+          )}
           <p className="mt-2 px-1 text-xs text-muted-foreground">
             AugNosis can be wrong. Verify treatments against local agronomic guidance before acting.
           </p>
